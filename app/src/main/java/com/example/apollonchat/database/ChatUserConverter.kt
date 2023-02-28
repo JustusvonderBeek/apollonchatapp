@@ -5,7 +5,6 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
 class ChatUserConverter {
-
     @TypeConverter
     fun listOfStringToString(list : List<String>) : String {
         return Gson().toJson(list)

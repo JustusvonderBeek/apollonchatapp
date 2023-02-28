@@ -8,34 +8,35 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-//@Database(entities = [User::class], version = 3, exportSchema = false)
-//@TypeConverters(value = [ChatUserConverter::class])
-//abstract class ChatUserDatabase : RoomDatabase() {
-//
-//    abstract val chatUserDatabaseDao : ChatUserDatabaseDao
-//
-//    companion object {
-//        @Volatile
-//        private var INSTANCE : ChatUserDatabase? = null
-//
-//        private val MIGRATION_2_3 = object : Migration(2, 3) {
-//            override fun migrate(database: SupportSQLiteDatabase) {
-//                var userList : List<User> = emptyList()
-//            }
-//        }
-//
-//        fun getInstance(context: Context) : ChatUserDatabase {
-//            synchronized(this) {
-//                var instance = INSTANCE
-//
-//                if (instance == null) {
-//                    instance = Room.databaseBuilder(context.applicationContext, ChatUserDatabase::class.java, "chat_user_database").build()
-//                    INSTANCE = instance
-//                }
-//
-//                return instance
-//
-//            }
-//        }
-//    }
-//}
+@Database(entities = [User::class], version = 1, exportSchema = false)
+@TypeConverters(value = [ChatUserConverter::class])
+abstract class ChatUserDatabase : RoomDatabase() {
+
+    abstract val chatUserDatabaseDao : ChatUserDatabaseDao
+
+    companion object {
+
+        @Volatile // Shared across threads, not cached, good for multithreading access
+        private var INSTANCE : ChatUserDatabase? = null
+
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                var userList : List<User> = emptyList()
+            }
+        }
+
+        fun getInstance(context: Context) : ChatUserDatabase {
+            synchronized(this) {
+                var instance = INSTANCE
+
+                if (instance == null) {
+                    instance = Room.databaseBuilder(context.applicationContext, ChatUserDatabase::class.java, "chat_user_database").fallbackToDestructiveMigration().build()
+                    INSTANCE = instance
+                }
+
+                return instance
+
+            }
+        }
+    }
+}
