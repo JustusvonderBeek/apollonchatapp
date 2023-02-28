@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import com.example.apollonchat.database.User
 import kotlin.random.Random
 import kotlin.random.nextUInt
+import kotlin.random.nextULong
 
 class ChatListViewModel(application: Application) : ViewModel() {
 
@@ -36,10 +37,10 @@ class ChatListViewModel(application: Application) : ViewModel() {
             oldList = mutableListOf()
         }
         val list = mutableListOf<User>()
-        var oldId = 1000u
+        var oldId = 1000L
         if (oldList.isNotEmpty())
             oldId = oldList.last().userId
-        val user = User(userId = oldId + 1u, username = "Blablabla", userimage = "aisfasfd", messages = listOf("bla", "bla"))
+        val user = User(userId = oldId + 1L, username = "Blablabla", userImagePath = "aisfasfd", messages = listOf("bla", "bla"))
 //        list.plus(user)
         list.add(user)
 //        _users.postValue(list)
@@ -50,7 +51,7 @@ class ChatListViewModel(application: Application) : ViewModel() {
     private fun createUsers() {
         Log.i("ChatListViewMode", "Creating users")
         val list = mutableListOf<User>()
-        val user = User(userId = Random.nextUInt(), username = "Blablabla", userimage = "aisfasfd", messages = listOf("This is a last message", "bla"))
+        val user = User(userId = Random.nextLong(), username = "Blablabla", userImagePath = "aisfasfd", messages = listOf("This is a last message", "bla"))
 //        list.plus(user)
         list.add(user)
         //users.postValue(list)
