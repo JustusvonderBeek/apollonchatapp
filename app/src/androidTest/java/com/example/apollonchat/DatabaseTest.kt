@@ -17,7 +17,7 @@ import kotlin.random.Random
 @RunWith(AndroidJUnit4::class)
 class DatabaseTest {
 
-    private lateinit var userDatabaseDao: ContactDatabaseDao
+    private lateinit var contactDatabaseDao: ContactDatabaseDao
     private lateinit var db : ApollonDatabase
 
     @Before
@@ -25,7 +25,7 @@ class DatabaseTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
 
         db = Room.inMemoryDatabaseBuilder(context, ApollonDatabase::class.java).allowMainThreadQueries().build()
-        userDatabaseDao = db.contactDatabaseDao
+        contactDatabaseDao = db.contactDatabaseDao
     }
 
     @After
@@ -38,13 +38,17 @@ class DatabaseTest {
     @Throws(Exception::class)
     fun insertAndGetUser() {
         val id = Random.nextLong()
-        val contact = Contact(id, "username123", "emptyPath.png", emptyList())
-        userDatabaseDao.insert(contact)
-        val queriedUser = userDatabaseDao.getContact(contact.contactId)
+        val contactName = "username123"
+        val imagePath = "emptyPath.png"
+        val contact = Contact(id, contactName, imagePath, emptyList())
+        contactDatabaseDao.insertContact(contact)
+        val queriedUser = contactDatabaseDao.getContact(contact.contactId)
         Assert.assertNotNull(queriedUser)
         if (queriedUser != null) {
             Assert.assertEquals(queriedUser.contactId, id)
             Assert.assertEquals(queriedUser.messages.size, 0)
+            Assert.assertEquals(queriedUser.contactName, contactName)
+            Assert.assertEquals(queriedUser.contactImagePath, imagePath)
         }
     }
 

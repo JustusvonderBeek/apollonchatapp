@@ -16,6 +16,6 @@ interface UserDatabaseDao {
     fun clearUser()
 
     @Query("SELECT * FROM user_table")
-    fun getUser() : LiveData<User>
+    fun getUser() : LiveData<List<User>>
 
 }

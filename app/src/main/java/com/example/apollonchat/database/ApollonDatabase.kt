@@ -11,12 +11,14 @@ import com.example.apollonchat.database.contact.Contact
 import com.example.apollonchat.database.contact.ContactConverter
 import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.user.User
+import com.example.apollonchat.database.user.UserDatabaseDao
 
-@Database(entities = [Contact::class, User::class], version = 1, exportSchema = false)
+@Database(entities = [Contact::class, User::class], version = 2, exportSchema = false)
 @TypeConverters(value = [ContactConverter::class])
 abstract class ApollonDatabase : RoomDatabase() {
 
     abstract val contactDatabaseDao : ContactDatabaseDao
+    abstract val userDatabaseDao : UserDatabaseDao
 
     companion object {
 
