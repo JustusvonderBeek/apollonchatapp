@@ -10,7 +10,7 @@ data class User(
     @PrimaryKey(autoGenerate = true)
     var userId : Long = Random.nextLong(),
     @ColumnInfo(name = "username")
-    var username : String?,
+    var username : String,
     @ColumnInfo(name = "user_image")
-    var userImage : String?
+    var userImage : String
 )
