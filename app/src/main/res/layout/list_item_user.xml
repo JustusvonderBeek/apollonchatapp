@@ -5,8 +5,8 @@
 
     <data>
         <variable
-            name="user"
-            type="com.example.apollonchat.database.User" />
+            name="contact"
+            type="com.example.apollonchat.database.contact.Contact" />
     </data>
 
     <LinearLayout
@@ -38,14 +38,14 @@
                 android:id="@+id/username"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@{user.username}" />
+                android:text="@{contact.contactName}" />
 
             <TextView
                 android:id="@+id/lastMessage"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="0dp"
-                android:text="@{user.messages[0]}" />
+                android:text="@{contact.messages[0]}" />
 
         </LinearLayout>
 
