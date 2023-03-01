@@ -9,7 +9,7 @@ import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
-import com.example.apollonchat.ChatUserItemAdapter
+import androidx.navigation.fragment.findNavController
 import com.example.apollonchat.R
 import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.databinding.FragmentChatListBinding
@@ -38,14 +38,16 @@ class ChatListFragment : Fragment() {
 
         val application = requireNotNull(this.activity).application
         val dataSource = ApollonDatabase.getInstance(application).contactDatabaseDao
+        val uDataSource = ApollonDatabase.getInstance(application).userDatabaseDao
 
-        viewModelFactory = ChatListViewModelFactory(dataSource, application)
+        viewModelFactory = ChatListViewModelFactory(dataSource, uDataSource, application)
         viewModel = ViewModelProvider(this, viewModelFactory)[ChatListViewModel::class.java]
         binding.chatListViewModel = viewModel
         binding.lifecycleOwner = this
 
-        val adapter = ChatUserItemAdapter(ChatUserItemAdapter.ChatUserItemListener { userId, type ->
-            Log.i("ChatListFragment", "Got user $userId")
+        val adapter = ChatUserItemAdapter(ChatUserItemAdapter.ChatUserItemListener { contactId ->
+//            Log.i("ChatListFragment", "Got user $contactId")
+            viewModel.onContactClicked(contactId)
         }, requireContext())
         binding.userlist.adapter = adapter
 
@@ -56,13 +58,17 @@ class ChatListFragment : Fragment() {
             Log.i("ChatListFragment", "Updated users - now " + adapter.itemCount)
         })
 
-        viewModel.testVal.observe(viewLifecycleOwner, Observer { newVal ->
-            binding.nameText.text = newVal
+        viewModel.navigateToContactChat.observe(viewLifecycleOwner, Observer {contactID ->
+            contactID?.let {
+                if(contactID != -1L) {
+                    viewModel.onContactNavigated()
+                    this.findNavController().navigate(ChatListFragmentDirections.actionChatListFragmentToChatViewFragment(contactID))
+                }
+            }
         })
 
         binding.addUser.setOnClickListener{
             viewModel.addUser()
-            viewModel.updateText()
         }
 
         return binding.root

@@ -1,4 +1,4 @@
-package com.example.apollonchat
+package com.example.apollonchat.chatlist
 
 import android.content.Context
 import android.view.LayoutInflater
@@ -12,7 +12,9 @@ import com.example.apollonchat.databinding.ListItemUserBinding
 
 class TextItemViewHolder(val textView: TextView): RecyclerView.ViewHolder(textView)
 
-class ChatUserItemAdapter(val clickListener : ChatUserItemListener, private val context : Context) : ListAdapter<Contact, ChatUserItemAdapter.ChatUserViewHolder>(UserDiffCallback()) {
+class ChatUserItemAdapter(val clickListener : ChatUserItemListener, private val context : Context) : ListAdapter<Contact, ChatUserItemAdapter.ChatUserViewHolder>(
+    UserDiffCallback()
+) {
 
 //    private val viewBinderHelper = ViewBinderHelper()
 
@@ -29,7 +31,9 @@ class ChatUserItemAdapter(val clickListener : ChatUserItemListener, private val 
 
         fun bind(clickListener : ChatUserItemListener, item : Contact, context: Context) {
             binding.contact = item
-//            binding.username = item.username
+            binding.clickListener = clickListener
+//            binding.username = item.contactName
+            binding.executePendingBindings()
         }
 
         companion object {
@@ -42,19 +46,19 @@ class ChatUserItemAdapter(val clickListener : ChatUserItemListener, private val 
 
     }
 
-    class ChatUserItemListener(val clickListener : (userId : Long, functionType : Int) -> Unit) {
-        fun onClick(contact : Contact, function : Int) = clickListener(contact.contactId.toLong(), function)
+    class ChatUserItemListener(val clickListener : (userId : Long) -> Unit) {
+        fun onClick(contact : Contact) = clickListener(contact.contactId)
     }
 
     class UserDiffCallback : DiffUtil.ItemCallback<Contact>() {
         override fun areItemsTheSame(oldItem: Contact, newItem: Contact): Boolean {
-//            return oldItem.userId == newItem.userId
-            return false
+            return oldItem.contactId == newItem.contactId
+//            return false
         }
 
         override fun areContentsTheSame(oldItem: Contact, newItem: Contact): Boolean {
-//            return oldItem == newItem
-            return false
+            return oldItem == newItem
+//            return false
         }
     }
 }
