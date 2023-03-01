@@ -6,14 +6,23 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.databinding.DataBindingUtil
+import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.fragment.navArgs
+import com.example.apollonchat.R
+import com.example.apollonchat.chatlist.ChatListViewModel
+import com.example.apollonchat.chatlist.ChatListViewModelFactory
 import com.example.apollonchat.chatview.ChatViewViewModel
 import com.example.apollonchat.chatview.ChatViewViewModelFactory
+import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.databinding.FragmentChatViewBinding
 class ChatViewFragment : Fragment() {
     private lateinit var viewModel : ChatViewViewModel
     private lateinit var viewModelFactory : ChatViewViewModelFactory
 
     private lateinit var binding : FragmentChatViewBinding
+
+    // Receiving the given safearg containing the actual pressed contactID
+    private val args : ChatViewFragmentArgs by navArgs()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,6 +33,18 @@ class ChatViewFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        return super.onCreateView(inflater, container, savedInstanceState)
+
+        binding = DataBindingUtil.inflate(inflater, R.layout.fragment_chat_view, container, false)
+
+        val application = requireNotNull(this.activity).application
+        val dataSource = ApollonDatabase.getInstance(application).contactDatabaseDao
+
+        viewModelFactory = ChatViewViewModelFactory(args.contactID, dataSource, application)
+        viewModel = ViewModelProvider(this, viewModelFactory)[ChatViewViewModel::class.java]
+        binding.chatViewViewModel = viewModel
+        binding.lifecycleOwner = this
+
+
+        return binding.root
     }
 }
