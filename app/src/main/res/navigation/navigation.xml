@@ -3,19 +3,31 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/navigation"
-    app:startDestination="@id/chatListFragment">
+    app:startDestination="@id/navigation_user_creation">
     <fragment
-        android:id="@+id/chatListFragment"
+        android:id="@+id/navigation_chat_list"
         android:name="com.example.apollonchat.chatlist.ChatListFragment"
-        android:label="fragment_chat_list"
-        tools:layout="@layout/fragment_chat_list" >
+        android:label="ChatListFragment"
+        tools:layout="@layout/fragment_chat_list">
         <action
             android:id="@+id/action_chatListFragment_to_chatViewFragment"
-            app:destination="@id/chatViewFragment" />
+            app:destination="@id/navigation_chat_view" />
     </fragment>
     <fragment
-        android:id="@+id/chatViewFragment"
-        android:name="com.example.apollonchat.ui.ChatViewFragment"
-        android:label="fragment_chat_view"
-        tools:layout="@layout/fragment_chat_view" />
+        android:id="@+id/navigation_chat_view"
+        android:name="com.example.apollonchat.chatview.ChatViewFragment"
+        android:label="ChatViewFragment"
+        tools:layout="@layout/fragment_chat_view">
+        <argument
+            android:name="contactID"
+            app:argType="long" />
+    </fragment>
+    <fragment
+        android:id="@+id/navigation_user_creation"
+        android:name="com.example.apollonchat.usercreate.UserCreationFragment"
+        android:label="UserCreationFragment">
+        <action
+            android:id="@+id/action_userCreationFragment_to_chatListFragment"
+            app:destination="@id/navigation_chat_list" />
+    </fragment>
 </navigation>
