@@ -6,11 +6,13 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.databinding.DataBindingUtil
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.navArgs
 import com.example.apollonchat.R
 import com.example.apollonchat.chatlist.ChatListViewModel
 import com.example.apollonchat.chatlist.ChatListViewModelFactory
+import com.example.apollonchat.chatlist.ChatUserItemAdapter
 import com.example.apollonchat.chatview.ChatViewViewModel
 import com.example.apollonchat.chatview.ChatViewViewModelFactory
 import com.example.apollonchat.database.ApollonDatabase
@@ -44,6 +46,14 @@ class ChatViewFragment : Fragment() {
         binding.chatViewViewModel = viewModel
         binding.lifecycleOwner = this
 
+        val adapter = MessageItemAdapter(requireContext())
+        binding.messageView.adapter = adapter
+
+        viewModel.messages.observe(viewLifecycleOwner, Observer { mes ->
+            mes?.let {
+                adapter.submitList(mes)
+            }
+        })
 
         return binding.root
     }
