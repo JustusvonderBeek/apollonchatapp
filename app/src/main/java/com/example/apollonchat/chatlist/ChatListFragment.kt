@@ -11,7 +11,7 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import com.example.apollonchat.ChatUserItemAdapter
 import com.example.apollonchat.R
-//import com.example.apollonchat.database.ChatUserDatabase
+import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.databinding.FragmentChatListBinding
 
 /**
@@ -37,14 +37,13 @@ class ChatListFragment : Fragment() {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_chat_list, container, false)
 
         val application = requireNotNull(this.activity).application
-//        val dataSource = ChatUserDatabase.getInstance(application).chatUserDatabaseDao
+        val dataSource = ApollonDatabase.getInstance(application).contactDatabaseDao
 
-        viewModelFactory = ChatListViewModelFactory(application)
+        viewModelFactory = ChatListViewModelFactory(dataSource, application)
         viewModel = ViewModelProvider(this, viewModelFactory)[ChatListViewModel::class.java]
         binding.chatListViewModel = viewModel
         binding.lifecycleOwner = this
 
-        // TODO: Fix the adapter
         val adapter = ChatUserItemAdapter(ChatUserItemAdapter.ChatUserItemListener { userId, type ->
             Log.i("ChatListFragment", "Got user $userId")
         }, requireContext())
