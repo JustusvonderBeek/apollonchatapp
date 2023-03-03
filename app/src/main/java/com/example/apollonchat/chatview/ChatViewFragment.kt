@@ -39,7 +39,7 @@ class ChatViewFragment : Fragment() {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_chat_view, container, false)
 
         val application = requireNotNull(this.activity).application
-        val dataSource = ApollonDatabase.getInstance(application).contactDatabaseDao
+        val dataSource = ApollonDatabase.getInstance(application).contactDao()
 
         viewModelFactory = ChatViewViewModelFactory(args.contactID, dataSource, application)
         viewModel = ViewModelProvider(this, viewModelFactory)[ChatViewViewModel::class.java]
@@ -49,9 +49,15 @@ class ChatViewFragment : Fragment() {
         val adapter = MessageItemAdapter(requireContext())
         binding.messageView.adapter = adapter
 
-        viewModel.messages.observe(viewLifecycleOwner, Observer { mes ->
-            mes?.let {
-                adapter.submitList(mes)
+//        viewModel.messages.observe(viewLifecycleOwner, Observer { messages ->
+//            messages?.let {
+//                adapter.submitList(messages)
+//            }
+//        })
+
+        viewModel.contact.observe(viewLifecycleOwner, Observer { cnt ->
+            cnt?.let {
+                adapter.submitList(cnt.messages)
             }
         })
 

@@ -15,31 +15,48 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
     private var viewModelJob = Job()
     private val uiScope = CoroutineScope(Dispatchers.Main + viewModelJob)
 
-    private val _username = MutableLiveData<String>()
-    val username : LiveData<String>
-        get() = _username
-
     private val _contact = MutableLiveData<Contact>()
+    val contact : LiveData<Contact>
+        get() = _contact
 
-    private val _contactImage = MutableLiveData<String>()
-    val contactImage : LiveData<String>
-        get() = _contactImage
-
-    private val _messages = MutableLiveData<List<String>>()
-    val messages : LiveData<List<String>>
+    private val _messages = MutableLiveData<MutableList<String>>()
+    val messages : LiveData<MutableList<String>>
         get() = _messages
+
+    val inputMessage = MutableLiveData<String>()
 
     init {
         Log.i("ChatViewViewModel", "Init")
         loadMessages(contactID)
     }
 
-    // TODO: Add functions
+    fun sendMessage() {
+        Log.i("ChatViewViewModel", "Message Sent Pressed")
+        val message = inputMessage.value
+        if (message != null && !message.contentEquals("")) {
+            Log.i("ChatViewViewModel", "Message Not null")
+//            if (_contact.value != null && _contact.value?.messages != null) {
+                // TODO: Not persistent. Fix
+//                _contact.value?.messages?.add(message)
+//                _contact.value?.messages = mutableListOf("ABC")
+//            }
+            _contact.value?.messages = _contact.value?.messages?.plus(message) as MutableList<String>
+            _contact.value = _contact.value
+//            _messages.value?.add(message)
+        }
+    }
+
     private fun loadMessages(contactID : Long) {
         uiScope.launch {
-            val contact = loadContactFromDatabase(contactID)
-            _contact.value = contact
-            _messages.value = contact.messages
+            val localContact = loadContactFromDatabase(contactID)
+            _contact.value = localContact
+            _messages.value = localContact.messages
+        }
+    }
+
+    private fun updateContact(contact : Contact) {
+        uiScope.launch {
+            updateContactInDatabase(contact)
         }
     }
 
@@ -49,5 +66,11 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
             chatContact
         }
         return contact
+    }
+
+    private suspend fun updateContactInDatabase(contact : Contact) {
+        withContext(Dispatchers.IO) {
+            database.updateContact(contact)
+        }
     }
 }
