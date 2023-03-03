@@ -20,7 +20,7 @@ class UserCreationViewModel(val database : UserDatabaseDao, val application: App
     }
 
     private val uiScope = CoroutineScope(Dispatchers.Main + viewModelJob)
-    var user : LiveData<User>? = null
+    var user = database.getUserAsLive()
     val username = MutableLiveData<String>()
     val userImage = MutableLiveData<String>()
 
@@ -31,17 +31,17 @@ class UserCreationViewModel(val database : UserDatabaseDao, val application: App
     init {
         userImage.value = "drawable/usericon.png"
         _navigateUserListEvent.value = false
+        loadUser()
     }
 
-    fun userExists() : Boolean {
+    private fun loadUser() {
         uiScope.launch {
-            val createdUser = checkUserExists()
-            if (!createdUser.isNullOrEmpty()) {
-                val firstUser = createdUser[0]
-                user = MutableLiveData(firstUser)
+            val localUser = loadUserFromDatabase()
+            if (localUser != null) {
+                _navigateUserListEvent.value = true
+//                user.value = localUser
             }
         }
-        return user != null
     }
 
     fun createUser() {
@@ -56,16 +56,11 @@ class UserCreationViewModel(val database : UserDatabaseDao, val application: App
         _navigateUserListEvent.value = true
     }
 
-    fun onUserListNavigated() {
-        _navigateUserListEvent.value = false
-    }
-
-    private suspend fun checkUserExists() : List<User>? {
-        val out = withContext(Dispatchers.IO) {
+    private suspend fun loadUserFromDatabase() : User? {
+        withContext(Dispatchers.IO) {
             return@withContext database.getUser()
         }
-        Log.i("UserCreationViewModel", "The user existed? ${out.value?.isNotEmpty()}")
-        return out.value
+        return null
     }
 
     private suspend fun insertNewUserToDatabase(newUser : User) {
@@ -74,4 +69,7 @@ class UserCreationViewModel(val database : UserDatabaseDao, val application: App
         }
     }
 
+    fun onUserListNavigated() {
+        _navigateUserListEvent.value = false
+    }
 }

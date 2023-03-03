@@ -31,22 +31,13 @@ class UserCreationFragment : Fragment() {
 
         val application = requireNotNull(this.activity).application
         val navigation = findNavController()
-        val dataSource = ApollonDatabase.getInstance(application).userDatabaseDao
+        val dataSource = ApollonDatabase.getInstance(application).userDao()
 
         viewModelFactory = UserCreationViewModelFactory(dataSource, application)
         viewModel = ViewModelProvider(this, viewModelFactory)[UserCreationViewModel::class.java]
 
-        val exists = viewModel.userExists()
-        if (exists) {
-            navigation.navigate(R.id.action_userCreationFragment_to_chatListFragment)
-        }
-
         binding.userCreationViewModel = viewModel
         binding.lifecycleOwner = this
-
-        binding.button.setOnClickListener{
-            viewModel.createUser()
-        }
 
         viewModel.navigateUserListEvent.observe(viewLifecycleOwner, Observer {navigate ->
             if (navigate) {
@@ -54,6 +45,17 @@ class UserCreationFragment : Fragment() {
                 navigation.navigate(R.id.action_userCreationFragment_to_chatListFragment)
             }
         })
+
+        viewModel.user.observe(viewLifecycleOwner, Observer { newUser ->
+            newUser?.let {
+                viewModel.onUserListNavigated()
+                navigation.navigate(R.id.action_userCreationFragment_to_chatListFragment)
+            }
+        })
+
+        binding.button.setOnClickListener{
+            viewModel.createUser()
+        }
 
         // Inflate the layout for this fragment
         return binding.root
