@@ -37,8 +37,8 @@ class ChatListFragment : Fragment() {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_chat_list, container, false)
 
         val application = requireNotNull(this.activity).application
-        val dataSource = ApollonDatabase.getInstance(application).contactDatabaseDao
-        val uDataSource = ApollonDatabase.getInstance(application).userDatabaseDao
+        val dataSource = ApollonDatabase.getInstance(application).contactDao()
+        val uDataSource = ApollonDatabase.getInstance(application).userDao()
 
         viewModelFactory = ChatListViewModelFactory(dataSource, uDataSource, application)
         viewModel = ViewModelProvider(this, viewModelFactory)[ChatListViewModel::class.java]
@@ -51,7 +51,7 @@ class ChatListFragment : Fragment() {
         }, requireContext())
         binding.userlist.adapter = adapter
 
-        viewModel.users.observe(viewLifecycleOwner, Observer {
+        viewModel.contacts.observe(viewLifecycleOwner, Observer {
             it?.let {
                 adapter.submitList(it)
             }
