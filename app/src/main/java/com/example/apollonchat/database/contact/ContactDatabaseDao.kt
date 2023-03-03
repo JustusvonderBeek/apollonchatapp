@@ -5,7 +5,7 @@ import androidx.room.*
 
 @Dao
 interface ContactDatabaseDao {
-    @Insert(onConflict = OnConflictStrategy.ABORT)
+    @Insert
     fun insertContact(contact : Contact)
 
     @Update
@@ -14,7 +14,7 @@ interface ContactDatabaseDao {
     @Query("DELETE FROM contact_table WHERE contactId = :key")
     fun deleteContact(key : Long)
 
-    @Query("DELETE FROM contact_table")
+    @Query("DELETE from contact_table")
     fun clearContacts()
 
     @Query("SELECT * FROM contact_table ORDER BY contact_name ASC")

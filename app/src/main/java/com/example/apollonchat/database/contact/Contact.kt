@@ -13,6 +13,5 @@ data class Contact (
     var contactName : String = "",
     @ColumnInfo(name = "contact_image")
     var contactImagePath : String = "drawable/usericon.png",
-    @ColumnInfo(name = "messages")
-    var messages : List<String> = emptyList(),
+    var messages : MutableList<String> = mutableListOf(),
 )

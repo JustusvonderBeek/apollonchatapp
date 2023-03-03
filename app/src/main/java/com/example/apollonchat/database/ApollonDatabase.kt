@@ -1,6 +1,7 @@
 package com.example.apollonchat.database
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -8,17 +9,16 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.apollonchat.database.contact.Contact
-import com.example.apollonchat.database.contact.ContactConverter
 import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
 
-@Database(entities = [Contact::class, User::class], version = 2, exportSchema = false)
-@TypeConverters(value = [ContactConverter::class])
+@Database(entities = [Contact::class, User::class], version = 1, exportSchema = false)
+@TypeConverters(value = [DatabaseTypeConverter::class])
 abstract class ApollonDatabase : RoomDatabase() {
 
-    abstract val contactDatabaseDao : ContactDatabaseDao
-    abstract val userDatabaseDao : UserDatabaseDao
+    abstract fun contactDao() : ContactDatabaseDao
+    abstract fun userDao() : UserDatabaseDao
 
     companion object {
 
@@ -36,7 +36,8 @@ abstract class ApollonDatabase : RoomDatabase() {
                 var instance = INSTANCE
 
                 if (instance == null) {
-                    instance = Room.databaseBuilder(context.applicationContext, ApollonDatabase::class.java, "apollon_database").fallbackToDestructiveMigration().build()
+                    Log.i("ApollonDatabase", "Creating new database")
+                    instance = Room.databaseBuilder(context.applicationContext, ApollonDatabase::class.java, "apollon_database").fallbackToDestructiveMigration(). build()
                     INSTANCE = instance
                 }
 

@@ -1,5 +1,7 @@
 package com.example.apollonchat
 
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.Observer
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -25,7 +27,7 @@ class DatabaseTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
 
         db = Room.inMemoryDatabaseBuilder(context, ApollonDatabase::class.java).allowMainThreadQueries().build()
-        contactDatabaseDao = db.contactDatabaseDao
+        contactDatabaseDao = db.contactDao()
     }
 
     @After
@@ -41,7 +43,7 @@ class DatabaseTest {
         val contactName = "username123"
         val imagePath = "emptyPath.png"
         val contact = Contact(id, contactName, imagePath, emptyList())
-        contactDatabaseDao.insertContact(contact)
+        contactDatabaseDao.insert(contact)
         val queriedUser = contactDatabaseDao.getContact(contact.contactId)
         Assert.assertNotNull(queriedUser)
         if (queriedUser != null) {
@@ -50,6 +52,28 @@ class DatabaseTest {
             Assert.assertEquals(queriedUser.contactName, contactName)
             Assert.assertEquals(queriedUser.contactImagePath, imagePath)
         }
+    }
+
+    @Test
+    @Throws(Exception::class)
+    fun testGetAll() {
+        val id = Random.nextLong()
+        val contactName = "Username"
+        val imagePath = "Path"
+        val messages = listOf<String>("Test", "test", "a")
+        val contactList = mutableListOf<Contact>()
+        for (i in 0..10) {
+            val contact = Contact(id + i, contactName, imagePath, messages)
+            contactList.add(contact)
+            contactDatabaseDao.insert(contact)
+        }
+        val out = contactDatabaseDao.getAllContacts()
+//        out.observe(this, Observer {res ->
+//            res?.let {
+//                Assert.assertNotNull(res)
+//                Assert.assertNotEquals(res.size, 0)
+//            }
+//        })
     }
 
 }
