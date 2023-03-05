@@ -1,9 +1,11 @@
 package com.example.apollonchat.chatview
 
+import android.app.Activity
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import androidx.fragment.app.Fragment
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.Observer
@@ -49,17 +51,28 @@ class ChatViewFragment : Fragment() {
         val adapter = MessageItemAdapter(requireContext())
         binding.messageView.adapter = adapter
 
-//        viewModel.messages.observe(viewLifecycleOwner, Observer { messages ->
-//            messages?.let {
-//                adapter.submitList(messages)
-//            }
-//        })
-
-        viewModel.contact.observe(viewLifecycleOwner, Observer { cnt ->
-            cnt?.let {
-                adapter.submitList(cnt.messages)
+        viewModel.messages.observe(viewLifecycleOwner, Observer { messages ->
+            messages?.let {
+                adapter.submitList(messages)
             }
         })
+
+        viewModel.hideKeyboard.observe(viewLifecycleOwner, Observer {hide ->
+            if(hide) {
+                val inputManager = requireActivity().getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
+                if (requireActivity().currentFocus != null) {
+                    inputManager.hideSoftInputFromWindow(requireActivity().currentFocus!!.windowToken, 0)
+                    viewModel.hideKeyboardDone()
+                }
+            }
+        })
+
+//        viewModel.contact.observe(viewLifecycleOwner, Observer { cnt ->
+//            cnt?.let {
+//                adapter.submitList(cnt.messages)
+////                adapter.notifyDataSetChanged()
+//            }
+//        })
 
         return binding.root
     }

@@ -46,7 +46,7 @@ class ChatListViewModel(val database : ContactDatabaseDao, val uDatabase : UserD
         var oldId = 1234L
         if (oldList.isNotEmpty())
             oldId = oldList.last().contactId
-        val contact = Contact(contactId = oldId + 1, contactName = "Blablabla", contactImagePath = "aisfasfd", messages = mutableListOf("bla", "bla"))
+        val contact = Contact(contactId = oldId + 1, contactName = "Blablabla", contactImagePath = "aisfasfd", messages = mutableListOf("bla", "bla", "Das ist ein langer Text um zzu testen wie das mit dem Layout aussieht usw. Langer Text, Langer Text, Langer Text.............!"))
         // Storing the new contact directly in the room database. This is enough to update the live data reference to the contact list
         // and show the new contact in the recycler view
         storeContact(contact)

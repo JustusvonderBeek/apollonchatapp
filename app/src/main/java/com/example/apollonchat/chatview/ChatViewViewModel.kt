@@ -23,10 +23,15 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
     val messages : LiveData<MutableList<String>>
         get() = _messages
 
+    private val _hideKeyboard = MutableLiveData<Boolean>()
+    val hideKeyboard : LiveData<Boolean>
+        get() = _hideKeyboard
+
     val inputMessage = MutableLiveData<String>()
 
     init {
         Log.i("ChatViewViewModel", "Init")
+        _hideKeyboard.value = false
         loadMessages(contactID)
     }
 
@@ -40,10 +45,18 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
 //                _contact.value?.messages?.add(message)
 //                _contact.value?.messages = mutableListOf("ABC")
 //            }
-            _contact.value?.messages = _contact.value?.messages?.plus(message) as MutableList<String>
-            _contact.value = _contact.value
-//            _messages.value?.add(message)
+//            _contact.value?.messages?.add(message)
+//            _contact.value = _contact.value
+            _messages.value?.add(message)
+            _contact.value?.messages = _messages.value!!
+            _contact.value?.let { updateContact(it) }
+            _hideKeyboard.value = true
+            inputMessage.value = ""
         }
+    }
+
+    fun hideKeyboardDone() {
+        _hideKeyboard.value = false
     }
 
     private fun loadMessages(contactID : Long) {
