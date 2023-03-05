@@ -62,6 +62,18 @@
 
         </androidx.recyclerview.widget.RecyclerView>
 
+        <View
+            android:id="@+id/messageViewAndSendDivider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:background="?android:attr/listDivider"
+            app:layout_constraintBottom_toTopOf="@+id/messageBox"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/messageView" />
+
         <EditText
             android:id="@+id/messageBox"
             android:layout_width="0dp"
@@ -75,7 +87,8 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@id/sendButton"
-            app:layout_constraintTop_toBottomOf="@id/messageView" />
+            app:layout_constraintTop_toBottomOf="@id/messageView"
+            android:layout_marginStart="8dp"/>
 
         <Button
             android:id="@+id/sendButton"
@@ -84,10 +97,13 @@
             android:layout_weight="1"
             android:text="Send"
             android:onClick="@{() -> chatViewViewModel.sendMessage()}"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toBottomOf="@id/messageBox"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/messageBox"
-            app:layout_constraintTop_toTopOf="@+id/messageBox" />
+            app:layout_constraintTop_toTopOf="@+id/messageBox"
+            app:layout_constraintStart_toEndOf="@id/messageBox"
+            android:layout_marginEnd="8dp"
+            android:layout_marginStart="8dp"
+            />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
