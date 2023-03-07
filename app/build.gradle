@@ -4,6 +4,7 @@ plugins {
     id 'kotlin-android'
     id 'kotlin-kapt'
     id 'androidx.navigation.safeargs.kotlin'
+    id 'kotlinx-serialization'
 }
 
 android {
@@ -62,6 +63,12 @@ dependencies {
 
     // Data binding
     implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
+
+    // Networking
+    implementation 'io.ktor:ktor-network:2.2.3'
+    implementation 'io.ktor:ktor-network-tls:2.2.3'
+
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0'
 
     // Testing
     testImplementation 'junit:junit:4.13.2'
