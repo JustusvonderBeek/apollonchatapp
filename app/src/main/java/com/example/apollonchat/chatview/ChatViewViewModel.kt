@@ -7,8 +7,13 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.apollonchat.database.contact.Contact
 import com.example.apollonchat.database.contact.ContactDatabaseDao
+import com.example.apollonchat.networking.Message
+import com.example.apollonchat.networking.Networking
+import io.ktor.util.date.*
 import kotlinx.coroutines.*
 import java.io.IOException
+import java.net.Inet4Address
+import java.net.InetAddress
 
 class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, val application: Application) : ViewModel() {
 
@@ -33,6 +38,7 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
         Log.i("ChatViewViewModel", "Init")
         _hideKeyboard.value = false
         loadMessages(contactID)
+
     }
 
     fun sendMessage() {
@@ -47,6 +53,11 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
 //            }
 //            _contact.value?.messages?.add(message)
 //            _contact.value = _contact.value
+            val addr = Inet4Address.getLoopbackAddress()
+            Log.i("ChatViewViewModel", "Trying to connect to $addr")
+            Networking.start(addr)
+            val netMessage = Message(Category = 0x2, Type = 0x1, UserId = 12345U, MessageId = 814223U, ContactUserId = 54321U, Timestamp = getTimeMillis().toString(), Part = 0U, Message = message)
+            Networking.write(netMessage)
             _messages.value?.add(message)
             _contact.value?.messages = _messages.value!!
             _contact.value?.let { updateContact(it) }
