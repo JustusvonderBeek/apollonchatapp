@@ -23,7 +23,7 @@ class MainActivity : AppCompatActivity() {
         val navController = findNavController(R.id.navHostFragment)
 
         // Decide what fragments should be "top-level" and SHOULD NOT! have a "back" arrow
-        val appBarConfiguration = AppBarConfiguration.Builder(setOf(R.id.navigation_chat_list, R.id.navigation_chat_view, R.id.navigation_add_contact)).build()
+        val appBarConfiguration = AppBarConfiguration.Builder(setOf(R.id.navigation_chat_list, R.id.navigation_user_creation)).build()
         // The back arrow in the actionBar (title bar on top)
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration)
     }
