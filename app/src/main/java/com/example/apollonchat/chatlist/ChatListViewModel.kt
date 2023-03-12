@@ -27,6 +27,7 @@ class ChatListViewModel(val database : ContactDatabaseDao, val uDatabase : UserD
     private val _contacts = database.getAllContacts()
     val contacts : LiveData<List<Contact>>
         get() = _contacts
+
     private var _user = uDatabase.getUserAsLive()
     val user : LiveData<User>
         get() = _user
@@ -35,6 +36,19 @@ class ChatListViewModel(val database : ContactDatabaseDao, val uDatabase : UserD
         Log.i("ChatListViewModel", "ChatListViewModel created")
 //        createUsers()
 //        initUser()
+//        uDatabase.clearUser()
+    }
+
+    fun clearUser() {
+        uiScope.launch {
+            clearCurrentUser()
+        }
+    }
+
+    private suspend fun clearCurrentUser() {
+        withContext(Dispatchers.IO) {
+            uDatabase.clearUser()
+        }
     }
 
     fun addUser() {
