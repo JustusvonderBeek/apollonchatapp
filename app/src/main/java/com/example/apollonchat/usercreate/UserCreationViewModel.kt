@@ -7,8 +7,12 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
+import com.example.apollonchat.networking.Create
+import com.example.apollonchat.networking.Networking
 import kotlinx.coroutines.*
+import java.net.InetAddress
 import kotlin.random.Random
+import kotlin.random.nextUInt
 
 class UserCreationViewModel(val database : UserDatabaseDao, val application: Application) : ViewModel() {
 
@@ -29,19 +33,8 @@ class UserCreationViewModel(val database : UserDatabaseDao, val application: App
         get() = _navigateUserListEvent
 
     init {
-        userImage.value = "drawable/usericon.png"
+        userImage.value = "@drawable/usericon.png"
         _navigateUserListEvent.value = false
-        loadUser()
-    }
-
-    private fun loadUser() {
-        uiScope.launch {
-            val localUser = loadUserFromDatabase()
-            if (localUser != null) {
-                _navigateUserListEvent.value = true
-//                user.value = localUser
-            }
-        }
     }
 
     fun createUser() {
@@ -53,19 +46,25 @@ class UserCreationViewModel(val database : UserDatabaseDao, val application: App
         uiScope.launch {
             insertNewUserToDatabase(newUser)
         }
-        _navigateUserListEvent.value = true
-    }
-
-    private suspend fun loadUserFromDatabase() : User? {
-        withContext(Dispatchers.IO) {
-            return@withContext database.getUser()
+        uiScope.launch {
+            writeNewUserToServer(newUser)
         }
-        return null
+        _navigateUserListEvent.value = true
     }
 
     private suspend fun insertNewUserToDatabase(newUser : User) {
         withContext(Dispatchers.IO) {
+            database.clearUser()
             database.insertUser(newUser)
+        }
+    }
+
+    private suspend fun writeNewUserToServer(newUser: User) {
+        Log.i("UserCreationViewModel", "Writing new user to server")
+        withContext(Dispatchers.IO) {
+            Networking.start(InetAddress.getLocalHost())
+            val create = Create(UserId = newUser.userId.toUInt(), MessageId = Random.nextUInt(), Username = newUser.username)
+            Networking.write(create)
         }
     }
 
