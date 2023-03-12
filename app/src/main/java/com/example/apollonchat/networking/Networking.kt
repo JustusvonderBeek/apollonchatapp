@@ -1,19 +1,20 @@
 package com.example.apollonchat.networking
 
 import android.util.Log
+import com.example.apollonchat.addcontact.AddContactViewModel
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
-import io.ktor.util.date.*
 import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.IOException
-import java.io.InputStream
 import java.net.InetAddress
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.BlockingQueue
+import kotlin.concurrent.thread
 
 object Networking {
 
@@ -33,35 +34,82 @@ object Networking {
     lateinit var remoteAddress : InetAddress
     lateinit var inputQueue : BlockingQueue<ByteArray>
     lateinit var outputQueue : BlockingQueue<ByteArray>
-    lateinit var socket : Socket
+    lateinit var outputChannel : Channel<ByteArray>
+
+    var socket : Socket? = null
     var started : Boolean = false
+    var connected : Boolean = false
+
+    // Testing if local vars work?
+    var contactViewModel: AddContactViewModel? = null
+    private var json = Json { ignoreUnknownKeys = true }
 
     private var networkingJob = Job()
-    private val uiScope = CoroutineScope(Dispatchers.Main + networkingJob)
-    private val ioScope = CoroutineScope(Dispatchers.IO + networkingJob)
+    private val netScope = CoroutineScope(Dispatchers.Main + networkingJob)
 
     fun write(data : Message) {
         try {
-            val sData = Json.encodeToString(data)
-            val rawPacketData = sData.toByteArray(charset = Charsets.UTF_8)
-            val packet = (rawPacketData.size + 2).to2ByteArray() + rawPacketData
-            outputQueue.put(packet)
+            netScope.launch {
+                val stringData = Json.encodeToString(data)
+                write(stringData)
+            }
         } catch (ex : IOException) {
             ex.printStackTrace()
         }
     }
 
-    fun start(remoteAddress: InetAddress) {
-        this.remoteAddress = remoteAddress
-        this.outputQueue = ArrayBlockingQueue(20)
-        this.inputQueue = ArrayBlockingQueue(20)
+    fun write(data : Search) {
+        try {
+            netScope.launch {
+                val stringData = Json.encodeToString(data)
+                write(stringData)
+            }
+        } catch (ex : Exception) {
+            // TODO: Make better handling
+            ex.printStackTrace()
+        }
+    }
 
+    fun write(data : Create) {
+        try {
+            netScope.launch {
+                val stringData = Json.encodeToString(data)
+                write(stringData)
+            }
+        } catch (ex : java.lang.Exception) {
+            ex.printStackTrace()
+        }
+    }
+
+    private suspend fun write(data : String) {
+        try {
+            // Starting a new coroutine allowing to suspend execution
+            val rawPacketData = data.toByteArray(charset = Charsets.UTF_8)
+            // Packet length includes the length of the size field (2 bytes)
+            val packet = (rawPacketData.size + 2).to2ByteArray() + rawPacketData
+//                outputQueue.put(packet)
+            outputChannel.send(packet)
+        } catch (ex : IOException) {
+            ex.printStackTrace()
+        }
+    }
+
+    fun registerContactViewModel(viewModel: AddContactViewModel) {
+        this.contactViewModel = viewModel
+    }
+
+    fun start(remoteAddress: InetAddress) {
         if (this.started) {
             Log.i("Networking", "Already started the network...")
-            return
+//            return
         } else {
+            this.remoteAddress = remoteAddress
+            this.outputQueue = ArrayBlockingQueue(20)
+            this.inputQueue = ArrayBlockingQueue(20)
+            this.outputChannel = Channel(20)
             this.started = true
         }
+
 //        try {
 //            socket = Socket()
 //            socket.connect(InetSocketAddress(remoteAddress, 15467), 1000)
@@ -75,12 +123,22 @@ object Networking {
 //        val executor = Executors.newSingleThreadExecutor()
 //        var handler = Handler(Looper.getMainLooper())
 //
-        uiScope.launch {
-            withContext(Dispatchers.IO) {
-                val selManager = SelectorManager(Dispatchers.IO)
-                socket = aSocket(selManager).tcp().connect("192.168.2.10", port = 50000)
+        if (!this.connected) {
+            // Starting a new coroutine and connecting inside to the server
+            var connectionStatus = false
+            netScope.launch {
+                withContext(Dispatchers.IO) {
+                    val selManager = SelectorManager(Dispatchers.IO)
+                    try {
+//                        socket = aSocket(selManager).tcp().connect("192.168.2.10", port = 50000)
+                        socket = aSocket(selManager).tcp().connect("192.168.178.53", port = 50000)
+                        connectionStatus = true
+                    } catch (ex : IOException) {
+                        Log.i("Networking", "Connection failed: $ex")
+                        return@withContext
+                    }
 
-                // The TLS variant
+                    // The TLS variant
 //        socket = aSocket(selManager).tcp().connect(remoteAddress).tls(coroutineContext = coroutineContext) {
 //            trustManager = object : X509TrustManager {
 //                override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
@@ -90,70 +148,88 @@ object Networking {
 //        }
 //                Log.i("Networking", "Listing on ...")
 
-                startSending()
-                startListening()
+                }
+                thread {
+                    netScope.launch {
+                        startSending()
+                    }
+                }
+                thread {
+                    netScope.launch {
+                        startListening()
+                    }
+                }
             }
 
+            this.connected = connectionStatus
         }
-
     }
 
     private fun ByteArray.toHexString() = joinToString("") { "%02x".format(it) }
     private fun Int.to2ByteArray() : ByteArray = byteArrayOf(shr(8).toByte(), toByte())
 
+    // Expecting Big Endian
+    private fun ByteArray.toUInt16(): UInt {
+        val upper = this[0].toUByte()
+        val lower = this[1].toUByte()
+        return (upper.toUInt() shl 8) + lower.toUInt()
+    }
+
     private suspend fun startSending() {
         Log.i("Networking", "Starting to send...")
-        ioScope.launch {
-            val sendChannel = socket.openWriteChannel(autoFlush = true)
-            while(true) {
-                val packet = withContext(Dispatchers.IO) {
-                    return@withContext outputQueue.take()
-                }
-                // TODO: Fetch data from queue
-//                val message = Message(Category = 0x2, Type = 0x1, UserId = 12345U, MessageId = 814223U, ContactUserId = 54321U, Timestamp = getTimeMillis().toString(), Part = 0U, Message = "Das ist eine erste Nachricht :)")
-//                val sMessage = Json.encodeToString(message)
-//                val rawMessage = sMessage.toByteArray(charset("UTF-8"))
-//                val length = (rawMessage.size + 2).to2ByteArray()
-//                val packet = length + rawMessage
+        withContext(Dispatchers.IO) {
+            val sendChannel = socket!!.openWriteChannel(autoFlush = true)
+            while (true) {
+                // Fetching the next packet from the queue of packets that should be sent
+                val nextPacket = outputChannel.receive()
+                Log.i("Networking Start Sending", "Sending: ${nextPacket.toHexString()}")
 
-//                Log.i("Networking", "Sending: $message \n ${packet.toHexString()}")
-                Log.i("Networking", "Sending: ${packet.toHexString()}")
-                withContext(Dispatchers.IO) {
-                    sendChannel.toOutputStream().write(packet)
-                }
+                sendChannel.toOutputStream().write(nextPacket)
             }
         }
     }
 
-    private var json = Json { ignoreUnknownKeys = true }
-
-    private fun startListening() {
+    private suspend fun startListening() {
         Log.i("Networking", "Starting to receive...")
-        ioScope.launch {
-            val recChannel = socket.openReadChannel().toInputStream()
+        withContext(Dispatchers.IO) {
+            val recChannel = socket!!.openReadChannel().toInputStream()
             val sizeBuffer = ByteArray(2)
             while(true) {
-                var read = 0
-                withContext(Dispatchers.IO) {
-                    read += recChannel.read(sizeBuffer)
-//                    while(read < 2) {
-//                        recChannel.read(sizeBuffer, read, sizeBuffer.size - read)
-//                    }
+                var read = recChannel.read(sizeBuffer, 0, 2)
+                while(read < 2) {
+                    recChannel.read(sizeBuffer, read, sizeBuffer.size - read)
                 }
-//                val size = (sizeBuffer[0].toInt() shl 8) and sizeBuffer[1].toInt()
-                val size = sizeBuffer[1].toInt() - 2
-                Log.i("Networking", "Size expected: $size - ${sizeBuffer.toHexString()} - ${sizeBuffer[1]}")
-                val packetBuffer = ByteArray(size)
-                withContext(Dispatchers.IO) {
-                    read = recChannel.read(packetBuffer)
-                }
-                // Save the read data into a consumer queue for anthoer thread to handle
+                // Big endian
+                val size = sizeBuffer.toUInt16() - 2U
+                Log.i("Networking", "Size expected: $size - ${sizeBuffer.toHexString()} - ${sizeBuffer[1].toUByte()}")
+                val packetBuffer = ByteArray(size.toInt())
+                read = recChannel.read(packetBuffer)
+                // Save the read data into a consumer queue for another thread to handle
                 // Convert the packet to String and give to JSON to handle
                 val sPacket = packetBuffer.toString(Charsets.UTF_8)
                 val header = json.decodeFromString<Header>(sPacket)
                 // TODO: Decode
                 Log.i("Networking", "Received cat: ${header.Category}, type: ${header.Type}")
-
+                when {
+                    header.Category.toInt() == PacketCategories.CONTACT.cat && header.Type.toInt() == ContactType.CONTACTS.type  -> {
+                        Log.i("Networking", "Received contact list: $sPacket")
+                        // Failed: We have to allow NULL in the data class in order to allow the list to be null
+                        val contactList = json.decodeFromString<ContactList>(sPacket)
+                        Log.i("Networking", "Conact list. ${contactList.Contacts}")
+                        contactList.Contacts?.let {
+                            contactViewModel?.showContacts(it)
+                        }
+                    }
+                    header.Category.toInt() == PacketCategories.DATA.cat && header.Type.toInt() == DataType.TEXT.type -> {
+                        Log.i("Networking", "Received text message")
+                        val message = json.decodeFromString<Message>(sPacket)
+                        Log.i("Networking", "Message: ${message.Message}")
+                    }
+                    else -> {
+                        Log.i("Networking", "Got unexpected category back")
+                        continue
+                    }
+                }
             }
         }
     }
