@@ -4,8 +4,8 @@
 
     <data>
         <variable
-            name="text"
-            type="String" />
+            name="message"
+            type="com.example.apollonchat.chatview.DisplayMessage"/>
     </data>
 
     <androidx.cardview.widget.CardView
@@ -15,17 +15,19 @@
         android:shadowDx="1"
         android:shadowDy="1"
         app:cardElevation="3dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
         android:layout_marginTop="8dp"
         >
+<!--        android:margin_own="@{message.own}"-->
+
     <!--        app:cardBackgroundColor="@color/purple_200"-->
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:padding="5dp"
-            android:text="@{text}"
+            android:text="@{message.content}"
 
             />
 
