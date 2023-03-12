@@ -1,6 +1,6 @@
 package com.example.apollonchat.networking
 
-enum class PacketCategories {
-    CONTACT,
-    DATA
+enum class PacketCategories(val cat : Int) {
+    CONTACT(1),
+    DATA(2),
 }
