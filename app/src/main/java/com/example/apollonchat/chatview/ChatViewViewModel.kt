@@ -2,6 +2,8 @@ package com.example.apollonchat.chatview
 
 import android.app.Application
 import android.util.Log
+import androidx.databinding.Observable
+import androidx.databinding.ObservableField
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -14,6 +16,7 @@ import kotlinx.coroutines.*
 import java.io.IOException
 import java.net.Inet4Address
 import java.net.InetAddress
+import kotlin.random.Random
 
 class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, val application: Application) : ViewModel() {
 
@@ -24,9 +27,13 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
     val contact : LiveData<Contact>
         get() = _contact
 
-    private val _messages = MutableLiveData<MutableList<String>>()
-    val messages : LiveData<MutableList<String>>
+    // Used to display messages in the fragment
+    private val _messages = MutableLiveData<List<DisplayMessage>>()
+    val messages : LiveData<List<DisplayMessage>>
         get() = _messages
+
+    // Used to add or remove messages to the list
+    private val _localMessages = mutableListOf<DisplayMessage>()
 
     private val _hideKeyboard = MutableLiveData<Boolean>()
     val hideKeyboard : LiveData<Boolean>
@@ -46,21 +53,25 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
         val message = inputMessage.value
         if (message != null && !message.contentEquals("")) {
             Log.i("ChatViewViewModel", "Message Not null")
-//            if (_contact.value != null && _contact.value?.messages != null) {
-                // TODO: Not persistent. Fix
-//                _contact.value?.messages?.add(message)
-//                _contact.value?.messages = mutableListOf("ABC")
-//            }
-//            _contact.value?.messages?.add(message)
-//            _contact.value = _contact.value
+
             val addr = Inet4Address.getLoopbackAddress()
             Log.i("ChatViewViewModel", "Trying to connect to $addr")
-            Networking.start(addr)
-            val netMessage = Message(Category = 0x2, Type = 0x1, UserId = 12345U, MessageId = 814223U, ContactUserId = 54321U, Timestamp = getTimeMillis().toString(), Part = 0U, Message = message)
-            Networking.write(netMessage)
-            _messages.value?.add(message)
-            _contact.value?.messages = _messages.value!!
-            _contact.value?.let { updateContact(it) }
+            uiScope.launch {
+                Networking.start(addr)
+            }
+            val netMessage = Message(UserId = 12345U, MessageId = 814223U, ContactUserId = 54321U, Timestamp = getTimeMillis().toString(), Part = 0U, Message = message)
+            uiScope.launch {
+                Networking.write(netMessage)
+            }
+            // TODO: Fix the ID generation, obtaining correct one
+            val displayMessage = DisplayMessage(Random.nextInt(), own = true, content = message, timestamp = "")
+            _localMessages.add(displayMessage)
+            _messages.value = _localMessages
+
+            // Making message persistent
+            _contact.value?.messages!!.add(message)
+
+            // Clearing input and hiding keyboard
             _hideKeyboard.value = true
             inputMessage.value = ""
         }
@@ -74,7 +85,10 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
         uiScope.launch {
             val localContact = loadContactFromDatabase(contactID)
             _contact.value = localContact
-            _messages.value = localContact.messages
+            for (m in localContact.messages) {
+                _localMessages.add(DisplayMessage(Random.nextInt(), false, content = m, timestamp = ""))
+            }
+            _messages.value = _localMessages
         }
     }
 
