@@ -54,11 +54,11 @@
             </LinearLayout>
 
             <Button
-                android:id="@+id/addUser"
+                android:id="@+id/addContact"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Button" />
+                android:text="Add Contact" />
 
         </LinearLayout>
 
