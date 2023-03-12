@@ -14,11 +14,6 @@ import com.example.apollonchat.R
 import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.databinding.FragmentChatListBinding
 
-/**
- * A simple [Fragment] subclass.
- * Use the [ChatListFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
 class ChatListFragment : Fragment() {
     private lateinit var viewModel : ChatListViewModel
     private lateinit var viewModelFactory : ChatListViewModelFactory
@@ -51,6 +46,13 @@ class ChatListFragment : Fragment() {
         }, requireContext())
         binding.userlist.adapter = adapter
 
+        // In case no user exists, navigate to the screen which creates a user
+        viewModel.user.observe(viewLifecycleOwner, Observer { newUser ->
+            if (newUser == null) {
+                findNavController().navigate(ChatListFragmentDirections.actionNavigationChatListToNavigationUserCreation())
+            }
+        })
+
         viewModel.contacts.observe(viewLifecycleOwner, Observer {
             it?.let {
                 adapter.submitList(it)
@@ -67,8 +69,10 @@ class ChatListFragment : Fragment() {
             }
         })
 
-        binding.addUser.setOnClickListener{
-            viewModel.addUser()
+        binding.addContact.setOnClickListener{
+            // Navigating to the add Contact screen and allow the user to add a new contact
+//            viewModel.clearUser()
+            this.findNavController().navigate(ChatListFragmentDirections.actionNavigationChatListToAddContactFragment())
         }
 
         return binding.root
