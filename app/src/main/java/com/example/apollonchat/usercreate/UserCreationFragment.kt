@@ -22,7 +22,6 @@ class UserCreationFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View?
@@ -39,17 +38,10 @@ class UserCreationFragment : Fragment() {
         binding.userCreationViewModel = viewModel
         binding.lifecycleOwner = this
 
-        viewModel.navigateUserListEvent.observe(viewLifecycleOwner, Observer {navigate ->
+        viewModel.navigateUserListEvent.observe(viewLifecycleOwner, Observer { navigate ->
             if (navigate) {
                 viewModel.onUserListNavigated()
-                navigation.navigate(R.id.action_userCreationFragment_to_chatListFragment)
-            }
-        })
-
-        viewModel.user.observe(viewLifecycleOwner, Observer { newUser ->
-            newUser?.let {
-                viewModel.onUserListNavigated()
-                navigation.navigate(R.id.action_userCreationFragment_to_chatListFragment)
+                findNavController().navigate(R.id.navigation_chat_list)
             }
         })
 
