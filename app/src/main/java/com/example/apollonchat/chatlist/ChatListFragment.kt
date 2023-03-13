@@ -31,11 +31,13 @@ class ChatListFragment : Fragment() {
         // Inflate the layout for this fragment
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_chat_list, container, false)
 
+        // Getting all database DAOs and bring them into the networking and start it
         val application = requireNotNull(this.activity).application
-        val dataSource = ApollonDatabase.getInstance(application).contactDao()
-        val uDataSource = ApollonDatabase.getInstance(application).userDao()
+        val contactDao = ApollonDatabase.getInstance(application).contactDao()
+        val userDao = ApollonDatabase.getInstance(application).userDao()
+        val messageDao = ApollonDatabase.getInstance(application).messageDao()
 
-        viewModelFactory = ChatListViewModelFactory(dataSource, uDataSource, application)
+        viewModelFactory = ChatListViewModelFactory(contactDao, userDao, messageDao, application)
         viewModel = ViewModelProvider(this, viewModelFactory)[ChatListViewModel::class.java]
         binding.chatListViewModel = viewModel
         binding.lifecycleOwner = this
@@ -57,7 +59,7 @@ class ChatListFragment : Fragment() {
             it?.let {
                 adapter.submitList(it)
             }
-            Log.i("ChatListFragment", "Updated users - now " + adapter.itemCount)
+//            Log.i("ChatListFragment", "Updated users - now " + adapter.itemCount)
         })
 
         viewModel.navigateToContactChat.observe(viewLifecycleOwner, Observer {contactID ->

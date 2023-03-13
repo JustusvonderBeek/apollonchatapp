@@ -4,13 +4,14 @@ import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.apollonchat.database.contact.ContactDatabaseDao
+import com.example.apollonchat.database.message.MessageDao
 import com.example.apollonchat.database.user.UserDatabaseDao
 
-class ChatListViewModelFactory(val database : ContactDatabaseDao, val uDatabase : UserDatabaseDao,  val application : Application) : ViewModelProvider.Factory {
+class ChatListViewModelFactory(val contactDao : ContactDatabaseDao, val userDao : UserDatabaseDao, val messageDao: MessageDao,  val application : Application) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ChatListViewModel::class.java)) {
-            return ChatListViewModel(database, uDatabase, application) as T
+            return ChatListViewModel(contactDao, userDao, messageDao, application) as T
         }
         throw IllegalArgumentException("Unknown class")
     }
