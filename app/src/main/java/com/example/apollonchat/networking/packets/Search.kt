@@ -1,16 +1,16 @@
-package com.example.apollonchat.networking
+package com.example.apollonchat.networking.packets
 
 @kotlinx.serialization.Serializable
-data class Create(
+data class Search(
     var Category : Byte,
     var Type : Byte,
     var UserId : UInt,
     var MessageId : UInt,
-    var Username : String,
+    var UserIdentifier : String,
 ) {
     constructor(
         UserId: UInt,
         MessageId: UInt,
-        Username: String
-    ) : this(0x01, 0x01, UserId, MessageId, Username)
+        UserIdentifier: String,
+    ) : this(0x01, 0x02, UserId, MessageId, UserIdentifier)
 }

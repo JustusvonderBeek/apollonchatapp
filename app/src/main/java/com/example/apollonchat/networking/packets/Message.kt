@@ -1,4 +1,4 @@
-package com.example.apollonchat.networking
+package com.example.apollonchat.networking.packets
 
 import com.example.apollonchat.database.message.DisplayMessage
 import kotlin.random.Random

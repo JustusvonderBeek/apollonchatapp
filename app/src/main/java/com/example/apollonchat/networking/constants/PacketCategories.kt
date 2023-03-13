@@ -1,4 +1,4 @@
-package com.example.apollonchat.networking
+package com.example.apollonchat.networking.constants
 
 enum class PacketCategories(val cat : Int) {
     CONTACT(1),

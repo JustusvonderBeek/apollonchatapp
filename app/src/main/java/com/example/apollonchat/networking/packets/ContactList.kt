@@ -1,4 +1,4 @@
-package com.example.apollonchat.networking
+package com.example.apollonchat.networking.packets
 
 @kotlinx.serialization.Serializable
 data class ContactList(
