@@ -31,8 +31,9 @@ class UserCreationFragment : Fragment() {
         val application = requireNotNull(this.activity).application
         val navigation = findNavController()
         val dataSource = ApollonDatabase.getInstance(application).userDao()
+        val contactSource = ApollonDatabase.getInstance(application).contactDao()
 
-        viewModelFactory = UserCreationViewModelFactory(dataSource, application)
+        viewModelFactory = UserCreationViewModelFactory(dataSource, contactSource, application)
         viewModel = ViewModelProvider(this, viewModelFactory)[UserCreationViewModel::class.java]
 
         binding.userCreationViewModel = viewModel

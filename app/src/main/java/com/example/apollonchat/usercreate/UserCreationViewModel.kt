@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
 import com.example.apollonchat.networking.Create
@@ -14,7 +15,7 @@ import java.net.InetAddress
 import kotlin.random.Random
 import kotlin.random.nextUInt
 
-class UserCreationViewModel(val database : UserDatabaseDao, val application: Application) : ViewModel() {
+class UserCreationViewModel(val database : UserDatabaseDao, val cDatabase: ContactDatabaseDao, val application: Application) : ViewModel() {
 
     private var viewModelJob = Job()
 
@@ -62,7 +63,7 @@ class UserCreationViewModel(val database : UserDatabaseDao, val application: App
     private suspend fun writeNewUserToServer(newUser: User) {
         Log.i("UserCreationViewModel", "Writing new user to server")
         withContext(Dispatchers.IO) {
-            Networking.start(InetAddress.getLocalHost())
+            Networking.start(InetAddress.getLocalHost(), cDatabase, database, null)
             val create = Create(UserId = newUser.userId.toUInt(), MessageId = Random.nextUInt(), Username = newUser.username)
             Networking.write(create)
         }
