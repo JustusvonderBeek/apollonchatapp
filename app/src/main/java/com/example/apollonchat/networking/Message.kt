@@ -1,6 +1,8 @@
 package com.example.apollonchat.networking
 
-import io.ktor.util.date.*
+import com.example.apollonchat.database.message.DisplayMessage
+import kotlin.random.Random
+
 @kotlinx.serialization.Serializable
 data class Message(
     var Category : Byte,
@@ -21,4 +23,6 @@ data class Message(
         Part: UInt,
         Message: String
     ) : this(0x02, 0x01, UserId, MessageId, ContactUserId, Timestamp, Part, Message)
+
+    fun toDisplayMessage(userId : Long) : DisplayMessage = DisplayMessage(Random.nextLong(), this.MessageId.toLong(), this.ContactUserId.toLong(), userId == this.UserId.toLong(), this.Message, this.Timestamp)
 }

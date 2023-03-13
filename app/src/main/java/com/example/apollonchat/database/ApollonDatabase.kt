@@ -10,15 +10,18 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.apollonchat.database.contact.Contact
 import com.example.apollonchat.database.contact.ContactDatabaseDao
+import com.example.apollonchat.database.message.DisplayMessage
+import com.example.apollonchat.database.message.MessageDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
 
-@Database(entities = [Contact::class, User::class], version = 1, exportSchema = false)
+@Database(entities = [Contact::class, User::class, DisplayMessage::class], version = 1, exportSchema = false)
 @TypeConverters(value = [DatabaseTypeConverter::class])
 abstract class ApollonDatabase : RoomDatabase() {
 
     abstract fun contactDao() : ContactDatabaseDao
     abstract fun userDao() : UserDatabaseDao
+    abstract fun messageDao() : MessageDao
 
     companion object {
 
