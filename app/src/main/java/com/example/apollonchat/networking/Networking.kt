@@ -2,6 +2,10 @@ package com.example.apollonchat.networking
 
 import android.util.Log
 import com.example.apollonchat.addcontact.AddContactViewModel
+import com.example.apollonchat.database.contact.ContactDatabaseDao
+import com.example.apollonchat.database.message.DisplayMessage
+import com.example.apollonchat.database.message.MessageDao
+import com.example.apollonchat.database.user.UserDatabaseDao
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.jvm.javaio.*
@@ -15,6 +19,7 @@ import java.net.InetAddress
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.BlockingQueue
 import kotlin.concurrent.thread
+import kotlin.random.Random
 
 object Networking {
 
@@ -39,6 +44,9 @@ object Networking {
     var socket : Socket? = null
     var started : Boolean = false
     var connected : Boolean = false
+    var database : ContactDatabaseDao? = null
+    var userDatabase : UserDatabaseDao? = null
+    var messageDatabase : MessageDao? = null
 
     // Testing if local vars work?
     var contactViewModel: AddContactViewModel? = null
@@ -98,11 +106,14 @@ object Networking {
         this.contactViewModel = viewModel
     }
 
-    fun start(remoteAddress: InetAddress) {
+    fun start(remoteAddress: InetAddress, database : ContactDatabaseDao, userDatabase : UserDatabaseDao?, messageDatabase : MessageDao?) {
         if (this.started) {
             Log.i("Networking", "Already started the network...")
 //            return
         } else {
+            this.database = database
+            this.userDatabase = userDatabase
+            this.messageDatabase = messageDatabase
             this.remoteAddress = remoteAddress
             this.outputQueue = ArrayBlockingQueue(20)
             this.inputQueue = ArrayBlockingQueue(20)
@@ -130,8 +141,9 @@ object Networking {
                 withContext(Dispatchers.IO) {
                     val selManager = SelectorManager(Dispatchers.IO)
                     try {
-//                        socket = aSocket(selManager).tcp().connect("192.168.2.10", port = 50000)
-                        socket = aSocket(selManager).tcp().connect("192.168.178.53", port = 50000)
+                        // This address should emulate the localhost address
+                        socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50000)
+//                        socket = aSocket(selManager).tcp().connect("192.168.178.53", port = 50000)
                         connectionStatus = true
                     } catch (ex : IOException) {
                         Log.i("Networking", "Connection failed: $ex")
@@ -215,7 +227,7 @@ object Networking {
                         Log.i("Networking", "Received contact list: $sPacket")
                         // Failed: We have to allow NULL in the data class in order to allow the list to be null
                         val contactList = json.decodeFromString<ContactList>(sPacket)
-                        Log.i("Networking", "Conact list. ${contactList.Contacts}")
+                        Log.i("Networking", "Contact list. ${contactList.Contacts}")
                         contactList.Contacts?.let {
                             contactViewModel?.showContacts(it)
                         }
@@ -224,6 +236,17 @@ object Networking {
                         Log.i("Networking", "Received text message")
                         val message = json.decodeFromString<Message>(sPacket)
                         Log.i("Networking", "Message: ${message.Message}")
+                        // TODO: Add the message to the messages of the client
+                        // TODO: Check if user exists
+                        messageDatabase?.insertMessage(DisplayMessage(Random.nextLong(), message.MessageId.toLong(), message.UserId.toLong(), false, message.Message, message.Timestamp))
+//                        val contact = database?.getContact(message.ContactUserId.toLong())
+//                        if (contact != null) {
+//                            Log.i("Networking", "Contact ${message.ContactUserId} found")
+//                            contact.messages.add(message.Message)
+//                            database?.updateContact(contact)
+//                        } else {
+//                            Log.i("Networking", "Contact ${message.ContactUserId} not found")
+//                        }
                     }
                     else -> {
                         Log.i("Networking", "Got unexpected category back")
