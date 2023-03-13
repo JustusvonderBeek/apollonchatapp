@@ -6,6 +6,8 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.apollonchat.database.contact.Contact
 import com.example.apollonchat.database.contact.ContactDatabaseDao
+import com.example.apollonchat.database.user.User
+import com.example.apollonchat.database.user.UserDatabaseDao
 import com.example.apollonchat.networking.NetworkContact
 import com.example.apollonchat.networking.Networking
 import com.example.apollonchat.networking.Search
@@ -14,7 +16,7 @@ import java.net.InetAddress
 import kotlin.random.Random
 import kotlin.random.nextUInt
 
-class AddContactViewModel(val database : ContactDatabaseDao) : ViewModel() {
+class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : ContactDatabaseDao) : ViewModel() {
 
     // Suspend functions
     private var viewModelJob = Job()
@@ -32,8 +34,13 @@ class AddContactViewModel(val database : ContactDatabaseDao) : ViewModel() {
 
     val contactName = MutableLiveData<String>()
 
+    private var _user : User? = null
+
     init {
         Log.i("AddContactViewModel", "Add Contact VM created")
+        uiScope.launch {
+            loadUser()
+        }
         contactName.value = ""
         _navigateToContactListEvent.value = false
         _contacts.value = mutableListOf()
@@ -43,12 +50,16 @@ class AddContactViewModel(val database : ContactDatabaseDao) : ViewModel() {
     fun searchContacts() {
         if (contactName.value != "") {
             // Creating a search user packet with the current name and send to server
-            val search = Search(1234U, Random.nextUInt(), contactName.value!!)
+            var id = 1234L
+            if (_user != null) {
+                id = _user!!.userId
+            }
+            val search = Search(id.toUInt(), Random.nextUInt(), contactName.value!!)
             Log.i("AddContactViewModel", "Search: $search")
             // Should make sure that the start thingy was already called
             uiScope.launch {
                 withContext(Dispatchers.IO) {
-                    Networking.start(InetAddress.getLocalHost()) // TODO: This is NOT correct but since the address is not taken, its good for now!
+                    Networking.start(InetAddress.getLocalHost(), database, null, null) // TODO: This is NOT correct but since the address is not taken, its good for now!
                     Networking.write(search)
                 }
             }
@@ -102,6 +113,16 @@ class AddContactViewModel(val database : ContactDatabaseDao) : ViewModel() {
         // Fails if set on a background thread
         withContext(Dispatchers.Main) {
             _navigateToContactListEvent.value = true
+        }
+    }
+
+    private suspend fun loadUser() {
+        val user = withContext(Dispatchers.IO) {
+            val user = uDatabase.getUser()
+            return@withContext user
+        }
+        if (user != null) {
+            _user = user
         }
     }
 

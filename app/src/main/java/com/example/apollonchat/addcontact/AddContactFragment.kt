@@ -35,8 +35,9 @@ class AddContactFragment : Fragment() {
 
         val application = requireNotNull(this.activity).application
         val database = ApollonDatabase.getInstance(application).contactDao()
+        val uDatabase = ApollonDatabase.getInstance(application).userDao()
 
-        viewModelFactory = AddContactViewModelFactory(database)
+        viewModelFactory = AddContactViewModelFactory(uDatabase, database)
         viewModel = ViewModelProvider(this, viewModelFactory)[AddContactViewModel::class.java]
 
         binding.addConctactViewModel = viewModel
