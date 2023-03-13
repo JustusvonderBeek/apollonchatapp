@@ -9,8 +9,8 @@ data class Create(
     var Username : String,
 ) {
     // According to the protocol we should NOT send a userId with the create account request!
+    // MessageId is set by the Networking Library!
     constructor(
-        MessageId: UInt,
         Username: String
-    ) : this(0x01, 0x01, 0U, MessageId, Username)
+    ) : this(0x01, 0x01, 0U, 0U, Username)
 }
