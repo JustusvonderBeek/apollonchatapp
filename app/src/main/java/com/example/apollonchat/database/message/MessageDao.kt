@@ -1,7 +1,6 @@
 package com.example.apollonchat.database.message
 
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
@@ -26,6 +25,9 @@ interface MessageDao {
     fun clearMessages()
 
     @Query("SELECT * FROM message_table WHERE contactId = :contactId ORDER BY messageId ASC")
-    fun getMessages(contactId : Long) : LiveData<MutableList<DisplayMessage>>
+    fun getMessagesLive(contactId : Long) : LiveData<MutableList<DisplayMessage>>
+
+    @Query("SELECT * FROM message_table WHERE contactId = :contactId ORDER BY messageId ASC")
+    fun getMessages(contactId : Long) : MutableList<DisplayMessage>?
 
 }
