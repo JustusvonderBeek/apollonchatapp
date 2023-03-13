@@ -6,6 +6,10 @@ import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.message.DisplayMessage
 import com.example.apollonchat.database.message.MessageDao
 import com.example.apollonchat.database.user.UserDatabaseDao
+import com.example.apollonchat.networking.constants.ContactType
+import com.example.apollonchat.networking.constants.DataType
+import com.example.apollonchat.networking.constants.PacketCategories
+import com.example.apollonchat.networking.packets.*
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.utils.io.jvm.javaio.*
@@ -142,6 +146,7 @@ object Networking {
                     val selManager = SelectorManager(Dispatchers.IO)
                     try {
                         // This address should emulate the localhost address
+//                        socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50000)
                         socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50000)
 //                        socket = aSocket(selManager).tcp().connect("192.168.178.53", port = 50000)
                         connectionStatus = true
@@ -238,15 +243,15 @@ object Networking {
                         Log.i("Networking", "Message: ${message.Message}")
                         // TODO: Add the message to the messages of the client
                         // TODO: Check if user exists
-                        messageDatabase?.insertMessage(DisplayMessage(Random.nextLong(), message.MessageId.toLong(), message.UserId.toLong(), false, message.Message, message.Timestamp))
-//                        val contact = database?.getContact(message.ContactUserId.toLong())
-//                        if (contact != null) {
-//                            Log.i("Networking", "Contact ${message.ContactUserId} found")
-//                            contact.messages.add(message.Message)
-//                            database?.updateContact(contact)
-//                        } else {
-//                            Log.i("Networking", "Contact ${message.ContactUserId} not found")
-//                        }
+                        messageDatabase?.let {db ->
+                            // TODO: Fix the message ID to be the last + 1
+                            var oldMessageId = 0
+                            if (db.getMessages(message.UserId.toLong()) != null) {
+                                oldMessageId = db.getMessages(message.UserId.toLong())!!.size + 1
+                            }
+                            val dm = DisplayMessage(Random.nextLong(), messageId = oldMessageId.toLong(), message.UserId.toLong(), false, message.Message, message.Timestamp)
+                            db.insertMessage(dm)
+                        }
                     }
                     else -> {
                         Log.i("Networking", "Got unexpected category back")
