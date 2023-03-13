@@ -7,15 +7,15 @@ import com.google.gson.reflect.TypeToken
 
 class DatabaseTypeConverter {
     @TypeConverter
-    fun listOfStringToString(list : List<String>) : String {
+    fun listOfStringToString(list : MutableList<String>) : String {
         return Gson().toJson(list)
     }
 
     @TypeConverter
-    fun stringToList(json : String?) : List<String> {
+    fun stringToList(json : String?) : MutableList<String> {
         if (json == null) {
-            return emptyList()
+            return mutableListOf()
         }
-        return Gson().fromJson(json, object : TypeToken<List<String>>() {}.type)
+        return Gson().fromJson(json, object : TypeToken<MutableList<String>>() {}.type)
     }
 }
