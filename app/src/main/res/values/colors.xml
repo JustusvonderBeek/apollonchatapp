@@ -7,4 +7,8 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="apollon_green">#FF129936</color>
+    <color name="login_gradient_start">#FF12aa29</color>
+    <color name="login_gradient_end">#FF82cc83</color>
+    <color name="simple_button_background">#FF82cc83</color>
 </resources>
