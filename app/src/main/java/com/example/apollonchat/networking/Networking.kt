@@ -5,6 +5,7 @@ import com.example.apollonchat.addcontact.AddContactViewModel
 import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.message.DisplayMessage
 import com.example.apollonchat.database.message.MessageDao
+import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
 import com.example.apollonchat.networking.constants.ContactType
 import com.example.apollonchat.networking.constants.DataType
@@ -24,6 +25,7 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.BlockingQueue
 import kotlin.concurrent.thread
 import kotlin.random.Random
+import kotlin.random.nextUInt
 
 object Networking {
 
@@ -55,6 +57,9 @@ object Networking {
     // Testing if local vars work?
     var contactViewModel: AddContactViewModel? = null
     private var json = Json { ignoreUnknownKeys = true }
+    private var lastMessageId = Random.nextUInt()
+
+    private var userCreatedCallback : ((User) -> Unit)? = null
 
     private var networkingJob = Job()
     private val netScope = CoroutineScope(Dispatchers.Main + networkingJob)
@@ -62,6 +67,7 @@ object Networking {
     fun write(data : Message) {
         try {
             netScope.launch {
+                data.MessageId = lastMessageId++
                 val stringData = Json.encodeToString(data)
                 write(stringData)
             }
@@ -73,6 +79,7 @@ object Networking {
     fun write(data : Search) {
         try {
             netScope.launch {
+                data.MessageId = lastMessageId++
                 val stringData = Json.encodeToString(data)
                 write(stringData)
             }
@@ -85,6 +92,7 @@ object Networking {
     fun write(data : Create) {
         try {
             netScope.launch {
+                data.MessageId = lastMessageId++
                 val stringData = Json.encodeToString(data)
                 write(stringData)
             }
@@ -108,6 +116,10 @@ object Networking {
 
     fun registerContactViewModel(viewModel: AddContactViewModel) {
         this.contactViewModel = viewModel
+    }
+
+    fun registerContactCreatedCallback(callback : (User) -> Unit) {
+        this.userCreatedCallback = callback
     }
 
     fun start(remoteAddress: InetAddress, database : ContactDatabaseDao, userDatabase : UserDatabaseDao?, messageDatabase : MessageDao?) {
@@ -252,6 +264,12 @@ object Networking {
                             val dm = DisplayMessage(Random.nextLong(), messageId = oldMessageId.toLong(), message.UserId.toLong(), false, message.Message, message.Timestamp)
                             db.insertMessage(dm)
                         }
+                    }
+                    header.Category.toInt() == PacketCategories.CONTACT.cat && header.Type.toInt() == ContactType.CREATE.type -> {
+                        Log.i("Networking", "Got create user answer from server back")
+                        val create = json.decodeFromString<Create>(sPacket)
+                        val user = User(userId = create.UserId.toLong(), username = create.Username, userImage = "drawable/usericon.png")
+                        userCreatedCallback?.invoke(user)
                     }
                     else -> {
                         Log.i("Networking", "Got unexpected category back")
