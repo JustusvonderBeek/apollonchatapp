@@ -67,6 +67,7 @@
             android:layout_marginTop="16dp"
             style="@style/SimpleButton"
             android:onClick="@{() -> userCreationViewModel.createUser()}"
+            android:clickable="@{userCreationViewModel.clickable}"
             android:text="@string/btn_crt_user"
             app:layout_constraintEnd_toEndOf="@+id/username_edit"
             app:layout_constraintStart_toStartOf="@+id/username_edit"
