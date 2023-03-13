@@ -19,12 +19,11 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.apollonchat.R
 import com.example.apollonchat.chatlist.ChatUserItemAdapter
 import com.example.apollonchat.database.contact.Contact
+import com.example.apollonchat.database.message.DisplayMessage
 import com.example.apollonchat.databinding.ChatMessageItemBinding
 import com.example.apollonchat.databinding.ListItemUserBinding
 
-class TextItemViewHolder(val textView: TextView): RecyclerView.ViewHolder(textView)
-
-class MessageItemAdapter(private val context : Context) : ListAdapter<DisplayMessage, MessageItemAdapter.MessageViewHolder>(MessageViewHolder.TextItemDiffCallback()) {
+class MessageItemAdapter(private val context : Context) : ListAdapter<DisplayMessage, MessageItemAdapter.MessageViewHolder>(MessageViewHolder.MessageItemDiffCallback()) {
 
     override fun onBindViewHolder(holder: MessageViewHolder, position: Int) {
         holder.bind(getItem(position), context)
@@ -66,9 +65,9 @@ class MessageItemAdapter(private val context : Context) : ListAdapter<DisplayMes
             }
         }
 
-    class TextItemDiffCallback : DiffUtil.ItemCallback<DisplayMessage>() {
+    class MessageItemDiffCallback : DiffUtil.ItemCallback<DisplayMessage>() {
         override fun areItemsTheSame(oldItem: DisplayMessage, newItem: DisplayMessage): Boolean {
-            return oldItem.ID == newItem.ID
+            return oldItem.messageId == newItem.messageId
         }
 
         override fun areContentsTheSame(oldItem: DisplayMessage, newItem: DisplayMessage): Boolean {
