@@ -2,38 +2,38 @@ package com.example.apollonchat.chatview
 
 import android.app.Application
 import android.util.Log
-import androidx.databinding.Observable
-import androidx.databinding.ObservableField
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.apollonchat.database.contact.Contact
 import com.example.apollonchat.database.contact.ContactDatabaseDao
+import com.example.apollonchat.database.message.DisplayMessage
+import com.example.apollonchat.database.message.MessageDao
+import com.example.apollonchat.database.user.User
+import com.example.apollonchat.database.user.UserDatabaseDao
 import com.example.apollonchat.networking.Message
 import com.example.apollonchat.networking.Networking
 import io.ktor.util.date.*
 import kotlinx.coroutines.*
 import java.io.IOException
 import java.net.Inet4Address
-import java.net.InetAddress
-import kotlin.random.Random
 
-class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, val application: Application) : ViewModel() {
+class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, val uDatabase : UserDatabaseDao, val mDatabase : MessageDao, val application: Application) : ViewModel() {
 
     private var viewModelJob = Job()
     private val uiScope = CoroutineScope(Dispatchers.Main + viewModelJob)
 
+    // TODO: Refactor and maybe remove if not necessary
     private val _contact = MutableLiveData<Contact>()
     val contact : LiveData<Contact>
         get() = _contact
 
     // Used to display messages in the fragment
-    private val _messages = MutableLiveData<List<DisplayMessage>>()
-    val messages : LiveData<List<DisplayMessage>>
+    private val _messages = mDatabase.getMessages(contactID)
+    val messages : LiveData<MutableList<DisplayMessage>>
         get() = _messages
 
-    // Used to add or remove messages to the list
-    private val _localMessages = mutableListOf<DisplayMessage>()
+    private var _user : User? = null
 
     private val _hideKeyboard = MutableLiveData<Boolean>()
     val hideKeyboard : LiveData<Boolean>
@@ -45,31 +45,54 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
         Log.i("ChatViewViewModel", "Init")
         _hideKeyboard.value = false
         loadMessages(contactID)
-
+        uiScope.launch {
+            loadUser()
+        }
     }
 
     fun sendMessage() {
         Log.i("ChatViewViewModel", "Message Sent Pressed")
         val message = inputMessage.value
         if (message != null && !message.contentEquals("")) {
-            Log.i("ChatViewViewModel", "Message Not null")
+            Log.i("ChatViewViewModel", "Message != null")
 
             val addr = Inet4Address.getLoopbackAddress()
             Log.i("ChatViewViewModel", "Trying to connect to $addr")
             uiScope.launch {
-                Networking.start(addr)
+                Networking.start(addr, database, uDatabase, mDatabase)
             }
-            val netMessage = Message(UserId = 12345U, MessageId = 814223U, ContactUserId = 54321U, Timestamp = getTimeMillis().toString(), Part = 0U, Message = message)
+            var userId = 12345U
+            if (_user != null) {
+                userId = _user!!.userId.toUInt()
+            }
+            var messageId = 0
+            if (_messages.value != null) {
+                messageId = _messages.value!!.size + 1
+            }
+            val netMessage = Message(UserId = userId, MessageId = messageId.toUInt(), ContactUserId = contactID.toUInt(), Timestamp = getTimeMillis().toString(), Part = 0U, Message = message)
             uiScope.launch {
                 Networking.write(netMessage)
             }
+
+            val displayMessage = netMessage.toDisplayMessage(userId.toLong())
+            uiScope.launch {
+                insertMessage(displayMessage)
+            }
+//            _messages.value!!.add(displayMessage)
+
+
             // TODO: Fix the ID generation, obtaining correct one
-            val displayMessage = DisplayMessage(Random.nextInt(), own = true, content = message, timestamp = "")
-            _localMessages.add(displayMessage)
-            _messages.value = _localMessages
+//            val displayMessage = DisplayMessage(Random.nextInt(), own = true, content = message, timestamp = "")
+//            _localMessages.add(displayMessage)
+//            _messages.value = _localMessages
+//            _messages.value?.add(message)
 
             // Making message persistent
-            _contact.value?.messages!!.add(message)
+            if (_contact.value != null) {
+                Log.i("ChatViewViewModel", "Adding new message to contact")
+//                _contact.value!!.messages.add(message)
+//                updateContact(_contact.value!!)
+            }
 
             // Clearing input and hiding keyboard
             _hideKeyboard.value = true
@@ -85,10 +108,25 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
         uiScope.launch {
             val localContact = loadContactFromDatabase(contactID)
             _contact.value = localContact
-            for (m in localContact.messages) {
-                _localMessages.add(DisplayMessage(Random.nextInt(), false, content = m, timestamp = ""))
-            }
-            _messages.value = _localMessages
+//            _localMessages = loadMessages()
+//            for (m in localContact.messages) {
+//                _localMessages.add(DisplayMessage(Random.nextInt(), false, content = m, timestamp = ""))
+//            }
+//            _messages.value = _localMessages
+        }
+    }
+
+//    private suspend fun loadMessages() : LiveData<MutableList<DisplayMessage>> {
+//        val res = withContext(Dispatchers.IO) {
+//            val messages = mDatabase.getMessages(contactID)
+//            return@withContext messages
+//        }
+//        return res
+//    }
+
+    private suspend fun insertMessage(message: DisplayMessage) {
+        withContext(Dispatchers.IO) {
+            mDatabase.insertMessage(message)
         }
     }
 
@@ -109,6 +147,15 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
     private suspend fun updateContactInDatabase(contact : Contact) {
         withContext(Dispatchers.IO) {
             database.updateContact(contact)
+        }
+    }
+
+    private  suspend fun loadUser() {
+        val user = withContext(Dispatchers.IO) {
+            return@withContext uDatabase.getUser()
+        }
+        if (user != null) {
+            this._user = user
         }
     }
 }

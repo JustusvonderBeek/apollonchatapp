@@ -42,8 +42,10 @@ class ChatViewFragment : Fragment() {
 
         val application = requireNotNull(this.activity).application
         val dataSource = ApollonDatabase.getInstance(application).contactDao()
+        val uDataSource = ApollonDatabase.getInstance(application).userDao()
+        val mDataSource = ApollonDatabase.getInstance(application).messageDao()
 
-        viewModelFactory = ChatViewViewModelFactory(args.contactID, dataSource, application)
+        viewModelFactory = ChatViewViewModelFactory(args.contactID, dataSource, uDataSource, mDataSource, application)
         viewModel = ViewModelProvider(this, viewModelFactory)[ChatViewViewModel::class.java]
         binding.chatViewViewModel = viewModel
         binding.lifecycleOwner = this
