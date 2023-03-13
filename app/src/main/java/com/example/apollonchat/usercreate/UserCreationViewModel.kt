@@ -8,7 +8,7 @@ import androidx.lifecycle.ViewModel
 import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
-import com.example.apollonchat.networking.Create
+import com.example.apollonchat.networking.packets.Create
 import com.example.apollonchat.networking.Networking
 import kotlinx.coroutines.*
 import java.net.InetAddress
@@ -40,15 +40,16 @@ class UserCreationViewModel(val database : UserDatabaseDao, val cDatabase: Conta
 
     fun createUser() {
         // This method creates a user with the given values from the UI and stores it into the database
-        val newUser = User(userId = Random.nextLong(), username = username.value.orEmpty(), userImage = userImage.value.orEmpty())
+        val newUser = User(userId = 0, username = username.value.orEmpty(), userImage = userImage.value.orEmpty())
         Log.i("UserCreationViewModel", "Creating a new user: $newUser")
 
         // Not blocking the main thread (longer running task)
         uiScope.launch {
-            insertNewUserToDatabase(newUser)
-        }
-        uiScope.launch {
             writeNewUserToServer(newUser)
+        }
+        // TODO: Wait for response and then write the user into the database!
+        uiScope.launch {
+            insertNewUserToDatabase(newUser)
         }
         _navigateUserListEvent.value = true
     }
@@ -64,7 +65,7 @@ class UserCreationViewModel(val database : UserDatabaseDao, val cDatabase: Conta
         Log.i("UserCreationViewModel", "Writing new user to server")
         withContext(Dispatchers.IO) {
             Networking.start(InetAddress.getLocalHost(), cDatabase, database, null)
-            val create = Create(UserId = newUser.userId.toUInt(), MessageId = Random.nextUInt(), Username = newUser.username)
+            val create = Create(MessageId = Random.nextUInt(), Username = newUser.username)
             Networking.write(create)
         }
     }

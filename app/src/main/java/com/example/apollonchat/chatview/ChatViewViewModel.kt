@@ -11,7 +11,7 @@ import com.example.apollonchat.database.message.DisplayMessage
 import com.example.apollonchat.database.message.MessageDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
-import com.example.apollonchat.networking.Message
+import com.example.apollonchat.networking.packets.Message
 import com.example.apollonchat.networking.Networking
 import io.ktor.util.date.*
 import kotlinx.coroutines.*
@@ -29,7 +29,7 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
         get() = _contact
 
     // Used to display messages in the fragment
-    private val _messages = mDatabase.getMessages(contactID)
+    private val _messages = mDatabase.getMessagesLive(contactID)
     val messages : LiveData<MutableList<DisplayMessage>>
         get() = _messages
 

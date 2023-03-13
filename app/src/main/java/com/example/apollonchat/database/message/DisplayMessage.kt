@@ -2,7 +2,7 @@ package com.example.apollonchat.database.message
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.example.apollonchat.networking.Message
+import com.example.apollonchat.networking.packets.Message
 
 @Entity(tableName = "message_table")
 data class DisplayMessage(

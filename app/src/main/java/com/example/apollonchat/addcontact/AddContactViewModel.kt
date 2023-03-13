@@ -8,9 +8,9 @@ import com.example.apollonchat.database.contact.Contact
 import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
-import com.example.apollonchat.networking.NetworkContact
+import com.example.apollonchat.networking.packets.NetworkContact
 import com.example.apollonchat.networking.Networking
-import com.example.apollonchat.networking.Search
+import com.example.apollonchat.networking.packets.Search
 import kotlinx.coroutines.*
 import java.net.InetAddress
 import kotlin.random.Random
