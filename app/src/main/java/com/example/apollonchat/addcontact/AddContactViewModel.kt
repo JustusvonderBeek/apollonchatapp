@@ -8,12 +8,10 @@ import com.example.apollonchat.database.contact.Contact
 import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
-import com.example.apollonchat.networking.packets.NetworkContact
 import com.example.apollonchat.networking.Networking
 import com.example.apollonchat.networking.constants.ContactType
 import com.example.apollonchat.networking.constants.PacketCategories
-import com.example.apollonchat.networking.packets.ContactList
-import com.example.apollonchat.networking.packets.Search
+import com.example.apollonchat.networking.packets.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -107,7 +105,7 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
         // Clear contact list
         _contactList.clear()
         for (contact in contacts) {
-            val newContact = Contact(contactId = contact.UserId.toLong(), contactName = contact.Username, contactImagePath = "@drawable/usericon.png", messages = mutableListOf())
+            val newContact = Contact(contactId = contact.UserId.toLong(), contactName = contact.Username, contactImagePath = "@drawable/usericon.png", lastMessage = "")
             Log.i("AddContactViewModel", "New contact: $newContact")
             _contactList.add(newContact)
         }
@@ -126,6 +124,9 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
         newContact?.let {
             uiScope.launch {
                 insertContactIntoDatabase(it)
+            }
+            uiScope.launch {
+                sendContactRequestToServer(it)
             }
         }
     }
@@ -152,6 +153,18 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
         // Fails if set on a background thread
         withContext(Dispatchers.Main) {
             _navigateToContactListEvent.value = true
+        }
+    }
+
+    private suspend fun sendContactRequestToServer(contact: Contact) {
+        withContext(Dispatchers.IO) {
+            var userId = 1U
+            if (_user != null) {
+               userId = _user!!.userId.toUInt()
+            }
+            val options = listOf(NetworkOption("Question", "Add"))
+            val addOption = ContactOption(userId, contact.contactId.toUInt(), options)
+            Networking.write(addOption)
         }
     }
 
