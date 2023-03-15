@@ -114,6 +114,10 @@ class UserCreationViewModel(val userDatabase : UserDatabaseDao, val application:
         }
     }
 
+    fun reconnectNetwork() {
+        Networking.start()
+    }
+
     fun onUserListNavigated() {
         _navigateUserListEvent.value = false
     }

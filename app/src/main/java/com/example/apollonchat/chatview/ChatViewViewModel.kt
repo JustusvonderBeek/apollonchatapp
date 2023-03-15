@@ -56,11 +56,6 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
         if (message != null && !message.contentEquals("")) {
             Log.i("ChatViewViewModel", "Message != null")
 
-            val addr = Inet4Address.getLoopbackAddress()
-            Log.i("ChatViewViewModel", "Trying to connect to $addr")
-            uiScope.launch {
-                Networking.start(addr, database, uDatabase, mDatabase)
-            }
             var userId = 12345U
             if (_user != null) {
                 userId = _user!!.userId.toUInt()
