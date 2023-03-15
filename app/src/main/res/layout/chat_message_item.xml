@@ -15,9 +15,7 @@
         android:shadowDx="1"
         android:shadowDy="1"
         app:cardElevation="3dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="8dp"
-        android:layout_marginTop="8dp"
+        app:cardViewStyle="@{message.own}"
         >
 <!--        android:margin_own="@{message.own}"-->
 
@@ -28,7 +26,7 @@
             android:layout_height="wrap_content"
             android:padding="5dp"
             android:text="@{message.content}"
-
+            style="@style/TextMessageOwnStyle"
             />
 
     </androidx.cardview.widget.CardView>
