@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+<!--    Adding an item to clear the database-->
+    <item
+        android:id="@+id/clearDatabaseAction"
+        android:title="Clear Database"
+        app:showAsAction="never"
+        />
+
+    <item
+        android:id="@+id/clearUserAction"
+        android:title="Clear User"
+        app:showAsAction="never"
+        />
+    <item
+        android:id="@+id/reconnectNetworkAction"
+        android:title="Reconnect Network" />
+</menu>
