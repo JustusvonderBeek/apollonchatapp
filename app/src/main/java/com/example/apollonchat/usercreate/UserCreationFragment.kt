@@ -1,19 +1,21 @@
 package com.example.apollonchat.usercreate
 
 import android.os.Bundle
+import android.util.Log
+import android.view.*
 import androidx.fragment.app.Fragment
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import androidx.core.view.MenuProvider
 import androidx.databinding.DataBindingUtil
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.example.apollonchat.R
 import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.databinding.FragmentUserCreationBinding
+import com.example.apollonchat.networking.Networking
 
-class UserCreationFragment : Fragment() {
+class UserCreationFragment : Fragment(), MenuProvider {
 
     private lateinit var viewModel : UserCreationViewModel
     private lateinit var viewModelFactory : UserCreationViewModelFactory
@@ -24,8 +26,34 @@ class UserCreationFragment : Fragment() {
         super.onCreate(savedInstanceState)
     }
 
+    override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+        menuInflater.inflate(R.menu.debug_menu, menu)
+    }
+
+    override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+        when (menuItem.itemId) {
+            R.id.clearDatabaseAction -> {
+                Log.i("UserCreationFragment", "Clearing the database")
+                return true
+            }
+            R.id.clearUserAction -> {
+                Log.i("UserCreationFragment", "Clearing User")
+                return true
+            }
+            R.id.reconnectNetworkAction -> {
+                Log.i("UserCreationFragment", "Reconnecting the Network")
+                viewModel.reconnectNetwork()
+                return true
+            }
+        }
+        return false
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View?
     {
+        // Add the menu into the app bar
+        requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
+
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_user_creation, container, false)
 
         val application = requireNotNull(this.activity).application

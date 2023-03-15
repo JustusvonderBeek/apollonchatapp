@@ -2,11 +2,11 @@ package com.example.apollonchat.chatlist
 
 import android.os.Bundle
 import android.util.Log
+import android.view.*
 import androidx.fragment.app.Fragment
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import androidx.core.view.MenuProvider
 import androidx.databinding.DataBindingUtil
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
@@ -14,7 +14,7 @@ import com.example.apollonchat.R
 import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.databinding.FragmentChatListBinding
 
-class ChatListFragment : Fragment() {
+class ChatListFragment : Fragment(), MenuProvider {
     private lateinit var viewModel : ChatListViewModel
     private lateinit var viewModelFactory : ChatListViewModelFactory
 
@@ -24,12 +24,40 @@ class ChatListFragment : Fragment() {
         super.onCreate(savedInstanceState)
     }
 
+    // Methods to execute when app bar item is clicked
+    override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+        menuInflater.inflate(R.menu.debug_menu, menu)
+    }
+
+    override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+        when (menuItem.itemId) {
+            R.id.clearDatabaseAction -> {
+                Log.i("ChatListFragment", "Clearing the database")
+                viewModel.clearContacts()
+                return true
+            }
+            R.id.clearUserAction -> {
+                Log.i("ChatListFragment", "Clearing User")
+                viewModel.clearUser()
+                return true
+            }
+            R.id.reconnectNetworkAction -> {
+                Log.i("ChatListFragment", "Reconnecting the Network")
+                return true
+            }
+        }
+        return false
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         // Inflate the layout for this fragment
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_chat_list, container, false)
+
+        // Enabling the debug menu in the app bar (3 dots)
+        requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
 
         // Getting all database DAOs and bring them into the networking and start it
         val application = requireNotNull(this.activity).application
