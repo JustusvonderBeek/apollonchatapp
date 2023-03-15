@@ -3,16 +3,13 @@ package com.example.apollonchat.networking
 import android.util.Log
 import com.example.apollonchat.addcontact.AddContactViewModel
 import com.example.apollonchat.database.contact.ContactDatabaseDao
-import com.example.apollonchat.database.message.DisplayMessage
 import com.example.apollonchat.database.message.MessageDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
-import com.example.apollonchat.networking.constants.ContactType
-import com.example.apollonchat.networking.constants.DataType
-import com.example.apollonchat.networking.constants.PacketCategories
 import com.example.apollonchat.networking.packets.*
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
+import io.ktor.network.tls.*
 import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -21,10 +18,11 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.net.InetAddress
-import java.util.Dictionary
+import java.security.cert.X509Certificate
 import java.util.Hashtable
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.BlockingQueue
+import javax.net.ssl.X509TrustManager
 import kotlin.concurrent.thread
 import kotlin.random.Random
 import kotlin.random.nextUInt
@@ -44,15 +42,21 @@ object Networking {
     ----------------------------------------------------------------
      */
 
-    lateinit var remoteAddress : InetAddress
-    lateinit var inputQueue : BlockingQueue<ByteArray>
-    lateinit var outputQueue : BlockingQueue<ByteArray>
-    lateinit var outputChannel : Channel<ByteArray>
+    var inputQueue : BlockingQueue<ByteArray> = ArrayBlockingQueue(20)
+    var outputQueue : BlockingQueue<ByteArray> = ArrayBlockingQueue(20)
+    var outputChannel : Channel<ByteArray> = Channel(20)
 
     var socket : Socket? = null
+    var connectSecure : Boolean = false
+    var remoteAddress : InetAddress? = null
     var started : Boolean = false
+    var sending : Boolean = false
+    var receiving : Boolean = false
+    var init : Boolean = false
     var connected : Boolean = false
-    var database : ContactDatabaseDao? = null
+
+    // Databases
+    var contactDatabase : ContactDatabaseDao? = null
     var userDatabase : UserDatabaseDao? = null
     var messageDatabase : MessageDao? = null
 
@@ -66,6 +70,18 @@ object Networking {
 
     private var networkingJob = Job()
     private val netScope = CoroutineScope(Dispatchers.Main + networkingJob)
+
+    fun write(data : ContactOption) {
+        try {
+            netScope.launch {
+                data.MessageId = lastMessageId++
+                val stringData = json.encodeToString(data)
+                write(stringData)
+            }
+        } catch (ex : IOException) {
+            ex.printStackTrace()
+        }
+    }
 
     fun write(data : Message) {
         try {
@@ -133,76 +149,92 @@ object Networking {
         }
     }
 
-    fun start(remoteAddress: InetAddress, database : ContactDatabaseDao, userDatabase : UserDatabaseDao?, messageDatabase : MessageDao?) {
-        if (this.started) {
-            Log.i("Networking", "Already started the network...")
-//            return
-        } else {
-            this.database = database
-            this.userDatabase = userDatabase
-            this.messageDatabase = messageDatabase
-            this.remoteAddress = remoteAddress
-            this.outputQueue = ArrayBlockingQueue(20)
-            this.inputQueue = ArrayBlockingQueue(20)
-            this.outputChannel = Channel(20)
-            this.started = true
+    // Default arguments (TLS) need to be placed after non default ones in order to be used
+    fun initialize(remote: InetAddress, contactDao : ContactDatabaseDao, userDao : UserDatabaseDao, messageDao : MessageDao, tls : Boolean = false) {
+        if (!this.init) {
+            if(contactDatabase == null) contactDatabase = contactDao
+            if (userDatabase == null) userDatabase = userDao
+            if (messageDatabase == null) messageDatabase = messageDao
+            if (remoteAddress == null) remoteAddress = remote
+            if (outputQueue == null) outputQueue = ArrayBlockingQueue(20)
+            if (inputQueue == null) inputQueue = ArrayBlockingQueue(20)
+            if (outputChannel == null) outputChannel = Channel(20)
+            connectSecure = tls
+            init = true
+        }
+    }
+
+    fun start() {
+        if (!init) {
+            throw IllegalStateException("'start()' called before 'initialize()'!")
         }
 
-//        try {
-//            socket = Socket()
-//            socket.connect(InetSocketAddress(remoteAddress, 15467), 1000)
-//            inputStream = socket.getInputStream()
-//            outputStream = socket.getOutputStream()
-//        } catch (ex : IOException) {
-//            // TODO: Add more sophisticated error handling and UI Interaction
-//            ex.printStackTrace()
-//        }
-//
-//        val executor = Executors.newSingleThreadExecutor()
-//        var handler = Handler(Looper.getMainLooper())
-//
-        if (!this.connected) {
-            // Starting a new coroutine and connecting inside to the server
-            var connectionStatus = false
-            netScope.launch {
-                withContext(Dispatchers.IO) {
-                    val selManager = SelectorManager(Dispatchers.IO)
-                    try {
-                        // This address should emulate the localhost address
-                        socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50000)
-//                        socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50000)
-//                        socket = aSocket(selManager).tcp().connect("192.168.178.53", port = 50000)
-                        connectionStatus = true
-                    } catch (ex : IOException) {
-                        Log.i("Networking", "Connection failed: $ex")
-                        return@withContext
-                    }
-
-                    // The TLS variant
-//        socket = aSocket(selManager).tcp().connect(remoteAddress).tls(coroutineContext = coroutineContext) {
-//            trustManager = object : X509TrustManager {
-//                override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-//                override fun checkClientTrusted(p0: Array<out X509Certificate>?, p1: String?) {}
-//                override fun checkServerTrusted(p0: Array<out X509Certificate>?, p1: String?) {}
-//            }
-//        }
-//                Log.i("Networking", "Listing on ...")
-
+        if (!connected) {
+            if (connectSecure) {
+                netScope.launch {
+                    connectSecure()
                 }
-                thread {
-                    netScope.launch {
-                        startSending()
-                    }
-                }
-                thread {
-                    netScope.launch {
-                        startListening()
-                    }
+            } else {
+                netScope.launch {
+                    connectDefault()
                 }
             }
-
-            this.connected = connectionStatus
         }
+
+        if (!sending) {
+            thread {
+                netScope.launch {
+                    startSending()
+                }
+            }
+        }
+        if (!receiving) {
+            thread {
+                netScope.launch {
+                    startListening()
+                }
+            }
+        }
+    }
+
+    private suspend fun connectDefault() {
+         val con = withContext(Dispatchers.IO) {
+            val selManager = SelectorManager(Dispatchers.IO)
+            try {
+                // This address should emulate the localhost address
+                socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50000)
+//                        socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50000)
+//                        socket = aSocket(selManager).tcp().connect("192.168.178.53", port = 50000)
+                Log.i("Networking", "Connected to remote per TCP")
+                return@withContext true
+            } catch (ex : IOException) {
+                Log.i("Networking", "Connection failed: $ex")
+                return@withContext false
+            }
+        }
+        connected = con
+    }
+
+    private suspend fun connectSecure() {
+        val con = withContext(Dispatchers.IO) {
+            // The TLS variant
+            try {
+                val selManager = SelectorManager(Dispatchers.IO)
+                socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50001).tls(coroutineContext = coroutineContext) {
+                    trustManager = object : X509TrustManager {
+                        override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+                        override fun checkClientTrusted(p0: Array<out X509Certificate>?, p1: String?) {}
+                        override fun checkServerTrusted(p0: Array<out X509Certificate>?, p1: String?) {}
+                    }
+                }
+                Log.i("Networking", "Connected to remote per TLS")
+                return@withContext true
+            } catch (ex : IOException) {
+                Log.i("Networking", "Failed to connect to remote per TLS! $ex")
+                return@withContext false
+            }
+        }
+        connected = con
     }
 
     private fun ByteArray.toHexString() = joinToString("") { "%02x".format(it) }
@@ -217,87 +249,69 @@ object Networking {
 
     private suspend fun startSending() {
         Log.i("Networking", "Starting to send...")
-        withContext(Dispatchers.IO) {
-            val sendChannel = socket!!.openWriteChannel(autoFlush = true)
-            while (true) {
-                // Fetching the next packet from the queue of packets that should be sent
-                val nextPacket = outputChannel.receive()
-                Log.i("Networking Start Sending", "Sending: ${nextPacket.toHexString()}")
+        val con = withContext(Dispatchers.IO) {
+            try {
+                val sendChannel = socket!!.openWriteChannel(autoFlush = true)
+                while (true) {
+                    // Fetching the next packet from the queue of packets that should be sent
+                    val nextPacket = outputChannel.receive()
+                    Log.i("Networking Start Sending", "Sending: ${nextPacket.toHexString()}")
 
-                sendChannel.toOutputStream().write(nextPacket)
+                    sendChannel.toOutputStream().write(nextPacket)
+                }
+                return@withContext true
+            } catch (ex : NullPointerException) {
+                Log.i("Networking", "Failed to init send channel for remote")
+                return@withContext false
+            } catch (ex : IOException) {
+                Log.i("Networking", "Failed to send to remote")
+                return@withContext false
             }
         }
+        // Should only ever be false
+        this.sending = con
     }
 
     private suspend fun startListening() {
         Log.i("Networking", "Starting to receive...")
-        withContext(Dispatchers.IO) {
-            val recChannel = socket!!.openReadChannel().toInputStream()
-            val sizeBuffer = ByteArray(2)
-            while(true) {
-                var read = recChannel.read(sizeBuffer, 0, 2)
-                while(read < 2) {
-                    recChannel.read(sizeBuffer, read, sizeBuffer.size - read)
-                }
-                // Big endian
-                val size = sizeBuffer.toUInt16() - 2U
-                Log.i("Networking", "Size expected: $size - ${sizeBuffer.toHexString()} - ${sizeBuffer[1].toUByte()}")
-                val packetBuffer = ByteArray(size.toInt())
-                read = recChannel.read(packetBuffer)
-                // Save the read data into a consumer queue for another thread to handle
-                // Convert the packet to String and give to JSON to handle
-                val sPacket = packetBuffer.toString(Charsets.UTF_8)
-                val header = json.decodeFromString<Header>(sPacket)
-                // TODO: Decode
-                Log.i("Networking", "Received cat: ${header.Category}, type: ${header.Type}")
+        val con = withContext(Dispatchers.IO) {
+            try {
+                val recChannel = socket!!.openReadChannel().toInputStream()
+                val sizeBuffer = ByteArray(2)
+                while(true) {
+                    var read = recChannel.read(sizeBuffer, 0, 2)
+                    while(read < 2) {
+                        recChannel.read(sizeBuffer, read, sizeBuffer.size - read)
+                    }
+                    // Big endian
+                    val size = sizeBuffer.toUInt16() - 2U
+                    Log.i("Networking", "Size expected: $size - ${sizeBuffer.toHexString()} - ${sizeBuffer[1].toUByte()}")
+                    val packetBuffer = ByteArray(size.toInt())
+                    read = recChannel.read(packetBuffer)
+                    // Save the read data into a consumer queue for another thread to handle
+                    // Convert the packet to String and give to JSON to handle
+                    val sPacket = packetBuffer.toString(Charsets.UTF_8)
+                    val header = json.decodeFromString<Header>(sPacket)
+                    // TODO: Decode
+                    Log.i("Networking", "Received cat: ${header.Category}, type: ${header.Type}")
 
-                // TODO: Clean this mess up
-                registeredCallbacks[Pair(header.Category.toLong(), header.Type.toLong())]?.let {
-                    for(cal in it) {
-                        cal.invoke(sPacket)
+                    // TODO: Clean this mess up
+                    registeredCallbacks[Pair(header.Category.toLong(), header.Type.toLong())]?.let {
+                        for(cal in it) {
+                            cal.invoke(sPacket)
+                        }
                     }
                 }
-
-
-//                when {
-//                    header.Category.toInt() == PacketCategories.CONTACT.cat && header.Type.toInt() == ContactType.CONTACTS.type  -> {
-//                        Log.i("Networking", "Received contact list: $sPacket")
-//                        // Failed: We have to allow NULL in the data class in order to allow the list to be null
-//                        val contactList = json.decodeFromString<ContactList>(sPacket)
-//                        Log.i("Networking", "Contact list. ${contactList.Contacts}")
-//                        contactList.Contacts?.let {
-//                            contactViewModel?.showContacts(it)
-//                        }
-//                    }
-//                    header.Category.toInt() == PacketCategories.DATA.cat && header.Type.toInt() == DataType.TEXT.type -> {
-//                        Log.i("Networking", "Received text message")
-//                        val message = json.decodeFromString<Message>(sPacket)
-//                        Log.i("Networking", "Message: ${message.Message}")
-//                        // TODO: Add the message to the messages of the client
-//                        // TODO: Check if user exists
-//                        messageDatabase?.let {db ->
-//                            // TODO: Fix the message ID to be the last + 1
-//                            var oldMessageId = 0
-//                            if (db.getMessages(message.UserId.toLong()) != null) {
-//                                oldMessageId = db.getMessages(message.UserId.toLong())!!.size + 1
-//                            }
-//                            val dm = DisplayMessage(Random.nextLong(), messageId = oldMessageId.toLong(), message.UserId.toLong(), false, message.Message, message.Timestamp)
-//                            db.insertMessage(dm)
-//                        }
-//                    }
-//                    header.Category.toInt() == PacketCategories.CONTACT.cat && header.Type.toInt() == ContactType.CREATE.type -> {
-//                        Log.i("Networking", "Got create user answer from server back")
-//                        val create = json.decodeFromString<Create>(sPacket)
-//                        val user = User(userId = create.UserId.toLong(), username = create.Username, userImage = "drawable/usericon.png")
-////                        userCreatedCallback?.invoke(user)
-//                    }
-//                    else -> {
-//                        Log.i("Networking", "Got unexpected category back")
-//                        continue
-//                    }
-//                }
+                return@withContext true
+            } catch (ex : NullPointerException) {
+                Log.i("Networking", "Failed to get read channel for remote")
+                return@withContext false
+            } catch (ex : IOException) {
+                Log.i("Networking", "Failed to read from remote")
+                return@withContext false
             }
         }
+        this.receiving = con
     }
 
 
