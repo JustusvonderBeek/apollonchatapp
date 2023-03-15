@@ -28,4 +28,15 @@
         <item name="android:textSize">15sp</item>
         <item name="android:textAlignment">center</item>
     </style>
+<!--    Styling for the card view depending on who send the message is done in the binding adapter-->
+    <style name="TextMessageOwnStyle" parent="Widget.AppCompat.TextView">
+        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">14dp</item>
+    </style>
+    <style name="TextMessageRemoteStyle" parent="Widget.AppCompat.TextView">
+        <item name="fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">14dp</item>
+    </style>
 </resources>
