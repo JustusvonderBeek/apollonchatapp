@@ -8,6 +8,10 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="apollon_green">#FF129936</color>
+    <color name="apollon_green_brighter">#FF16ad3e</color>
+    <color name="apollon_green_bright">#FF19c146</color>
+    <color name="apollon_green_darker">#FF10872f</color>
+    <color name="apollon_green_dark">#FF0e772a</color>
     <color name="login_gradient_start">#FF12aa29</color>
     <color name="login_gradient_end">#FF82cc83</color>
     <color name="simple_button_background">#FF82cc83</color>
