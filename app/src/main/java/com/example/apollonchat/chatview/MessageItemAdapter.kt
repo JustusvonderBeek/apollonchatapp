@@ -1,6 +1,8 @@
 package com.example.apollonchat.chatview
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
 import android.print.PrintAttributes.Margins
 import android.util.Log
 import android.view.LayoutInflater
@@ -12,6 +14,8 @@ import android.widget.TextView
 import androidx.annotation.Dimension
 import androidx.annotation.IntegerRes
 import androidx.cardview.widget.CardView
+import androidx.core.content.ContextCompat
+import androidx.core.view.marginLeft
 import androidx.databinding.BindingAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -76,4 +80,24 @@ class MessageItemAdapter(private val context : Context) : ListAdapter<DisplayMes
     }
 
     }
+}
+
+/* This method styles the text message item depending on whether it
+* was sent by us or the other end.
+ */
+@BindingAdapter("app:cardViewStyle")
+fun bindCardViewStyle(view : CardView, own : Boolean) {
+    if (own) {
+        val lParams = view.layoutParams as MarginLayoutParams
+        lParams.setMargins(30, 16, 120, 0)
+        // Need to resolve the color instead of passing a reference
+        val background = ContextCompat.getColor(view.context, R.color.apollon_green)
+        view.setCardBackgroundColor(background)
+    } else {
+        val lParams = view.layoutParams as MarginLayoutParams
+        lParams.setMargins(120, 16, 30, 0)
+        val background = ContextCompat.getColor(view.context, R.color.apollon_green_bright)
+        view.setCardBackgroundColor(background)
+    }
+    view.requestLayout()
 }
