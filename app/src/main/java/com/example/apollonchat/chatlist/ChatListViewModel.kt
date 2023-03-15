@@ -7,11 +7,17 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.contact.Contact
+import com.example.apollonchat.database.message.DisplayMessage
 import com.example.apollonchat.database.message.MessageDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
 import com.example.apollonchat.networking.Networking
+import com.example.apollonchat.networking.constants.DataType
+import com.example.apollonchat.networking.constants.PacketCategories
+import com.example.apollonchat.networking.packets.Message
 import kotlinx.coroutines.*
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import java.net.InetAddress
 import kotlin.random.Random
 
@@ -40,10 +46,29 @@ class ChatListViewModel(val contactDatabase : ContactDatabaseDao, val userDataba
     val user : LiveData<User>
         get() = _user
 
+    private var json = Json { ignoreUnknownKeys = true }
+
     init {
         Log.i("ChatListViewModel", "ChatListViewModel created")
         uiScope.launch {
             startNetwork()
+        }
+        uiScope.launch {
+            registerCallbackForIncomingMessages()
+        }
+    }
+
+    private suspend fun registerCallbackForIncomingMessages() {
+        withContext(Dispatchers.IO) {
+            Networking.registerCallback(PacketCategories.DATA.cat.toLong(), DataType.TEXT.type.toLong()) { packet ->
+                val message = json.decodeFromString<Message>(packet)
+                var oldMessageId = 0
+                if (messageDatabase.getMessages(message.UserId.toLong()) != null) {
+                    oldMessageId = messageDatabase.getMessages(message.UserId.toLong())!!.size + 1
+                }
+                val dm = DisplayMessage(oldMessageId.toLong(), message.UserId.toLong(), false, message.Message, message.Timestamp)
+                messageDatabase.insertMessage(dm)
+            }
         }
     }
 

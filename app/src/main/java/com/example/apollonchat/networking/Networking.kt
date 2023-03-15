@@ -21,6 +21,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.net.InetAddress
+import java.util.Dictionary
+import java.util.Hashtable
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.BlockingQueue
 import kotlin.concurrent.thread
@@ -58,6 +60,7 @@ object Networking {
     var contactViewModel: AddContactViewModel? = null
     private var json = Json { ignoreUnknownKeys = true }
     private var lastMessageId = Random.nextUInt()
+    private var registeredCallbacks = Hashtable<Pair<Long, Long>, MutableList<(String) -> Unit>>()
 
     private var userCreatedCallback : ((User) -> Unit)? = null
 
@@ -122,6 +125,14 @@ object Networking {
         this.userCreatedCallback = callback
     }
 
+    fun registerCallback(category : Long, type : Long, callback : (String) -> Unit) {
+        if (registeredCallbacks[Pair(category, type)] == null) {
+            registeredCallbacks[Pair(category, type)] = mutableListOf(callback)
+        } else {
+            registeredCallbacks[Pair(category, type)]!!.add(callback)
+        }
+    }
+
     fun start(remoteAddress: InetAddress, database : ContactDatabaseDao, userDatabase : UserDatabaseDao?, messageDatabase : MessageDao?) {
         if (this.started) {
             Log.i("Networking", "Already started the network...")
@@ -158,8 +169,8 @@ object Networking {
                     val selManager = SelectorManager(Dispatchers.IO)
                     try {
                         // This address should emulate the localhost address
-//                        socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50000)
-                        socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50000)
+                        socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50000)
+//                        socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50000)
 //                        socket = aSocket(selManager).tcp().connect("192.168.178.53", port = 50000)
                         connectionStatus = true
                     } catch (ex : IOException) {
@@ -239,43 +250,52 @@ object Networking {
                 val header = json.decodeFromString<Header>(sPacket)
                 // TODO: Decode
                 Log.i("Networking", "Received cat: ${header.Category}, type: ${header.Type}")
-                when {
-                    header.Category.toInt() == PacketCategories.CONTACT.cat && header.Type.toInt() == ContactType.CONTACTS.type  -> {
-                        Log.i("Networking", "Received contact list: $sPacket")
-                        // Failed: We have to allow NULL in the data class in order to allow the list to be null
-                        val contactList = json.decodeFromString<ContactList>(sPacket)
-                        Log.i("Networking", "Contact list. ${contactList.Contacts}")
-                        contactList.Contacts?.let {
-                            contactViewModel?.showContacts(it)
-                        }
-                    }
-                    header.Category.toInt() == PacketCategories.DATA.cat && header.Type.toInt() == DataType.TEXT.type -> {
-                        Log.i("Networking", "Received text message")
-                        val message = json.decodeFromString<Message>(sPacket)
-                        Log.i("Networking", "Message: ${message.Message}")
-                        // TODO: Add the message to the messages of the client
-                        // TODO: Check if user exists
-                        messageDatabase?.let {db ->
-                            // TODO: Fix the message ID to be the last + 1
-                            var oldMessageId = 0
-                            if (db.getMessages(message.UserId.toLong()) != null) {
-                                oldMessageId = db.getMessages(message.UserId.toLong())!!.size + 1
-                            }
-                            val dm = DisplayMessage(Random.nextLong(), messageId = oldMessageId.toLong(), message.UserId.toLong(), false, message.Message, message.Timestamp)
-                            db.insertMessage(dm)
-                        }
-                    }
-                    header.Category.toInt() == PacketCategories.CONTACT.cat && header.Type.toInt() == ContactType.CREATE.type -> {
-                        Log.i("Networking", "Got create user answer from server back")
-                        val create = json.decodeFromString<Create>(sPacket)
-                        val user = User(userId = create.UserId.toLong(), username = create.Username, userImage = "drawable/usericon.png")
-                        userCreatedCallback?.invoke(user)
-                    }
-                    else -> {
-                        Log.i("Networking", "Got unexpected category back")
-                        continue
+
+                // TODO: Clean this mess up
+                registeredCallbacks[Pair(header.Category.toLong(), header.Type.toLong())]?.let {
+                    for(cal in it) {
+                        cal.invoke(sPacket)
                     }
                 }
+
+
+//                when {
+//                    header.Category.toInt() == PacketCategories.CONTACT.cat && header.Type.toInt() == ContactType.CONTACTS.type  -> {
+//                        Log.i("Networking", "Received contact list: $sPacket")
+//                        // Failed: We have to allow NULL in the data class in order to allow the list to be null
+//                        val contactList = json.decodeFromString<ContactList>(sPacket)
+//                        Log.i("Networking", "Contact list. ${contactList.Contacts}")
+//                        contactList.Contacts?.let {
+//                            contactViewModel?.showContacts(it)
+//                        }
+//                    }
+//                    header.Category.toInt() == PacketCategories.DATA.cat && header.Type.toInt() == DataType.TEXT.type -> {
+//                        Log.i("Networking", "Received text message")
+//                        val message = json.decodeFromString<Message>(sPacket)
+//                        Log.i("Networking", "Message: ${message.Message}")
+//                        // TODO: Add the message to the messages of the client
+//                        // TODO: Check if user exists
+//                        messageDatabase?.let {db ->
+//                            // TODO: Fix the message ID to be the last + 1
+//                            var oldMessageId = 0
+//                            if (db.getMessages(message.UserId.toLong()) != null) {
+//                                oldMessageId = db.getMessages(message.UserId.toLong())!!.size + 1
+//                            }
+//                            val dm = DisplayMessage(Random.nextLong(), messageId = oldMessageId.toLong(), message.UserId.toLong(), false, message.Message, message.Timestamp)
+//                            db.insertMessage(dm)
+//                        }
+//                    }
+//                    header.Category.toInt() == PacketCategories.CONTACT.cat && header.Type.toInt() == ContactType.CREATE.type -> {
+//                        Log.i("Networking", "Got create user answer from server back")
+//                        val create = json.decodeFromString<Create>(sPacket)
+//                        val user = User(userId = create.UserId.toLong(), username = create.Username, userImage = "drawable/usericon.png")
+////                        userCreatedCallback?.invoke(user)
+//                    }
+//                    else -> {
+//                        Log.i("Networking", "Got unexpected category back")
+//                        continue
+//                    }
+//                }
             }
         }
     }

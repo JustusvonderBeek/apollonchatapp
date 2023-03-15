@@ -38,9 +38,9 @@ class ChatListFragment : Fragment() {
         val messageDao = ApollonDatabase.getInstance(application).messageDao()
 
         viewModelFactory = ChatListViewModelFactory(contactDao, userDao, messageDao, application)
-        viewModel = ViewModelProvider(this, viewModelFactory)[ChatListViewModel::class.java]
+        viewModel = ViewModelProvider(requireActivity(), viewModelFactory)[ChatListViewModel::class.java]
         binding.chatListViewModel = viewModel
-        binding.lifecycleOwner = this
+        binding.lifecycleOwner = requireActivity()
 
         val adapter = ChatUserItemAdapter(ChatUserItemAdapter.ChatUserItemListener { contactId ->
 //            Log.i("ChatListFragment", "Got user $contactId")

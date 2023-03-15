@@ -46,9 +46,9 @@ class ChatViewFragment : Fragment() {
         val mDataSource = ApollonDatabase.getInstance(application).messageDao()
 
         viewModelFactory = ChatViewViewModelFactory(args.contactID, dataSource, uDataSource, mDataSource, application)
-        viewModel = ViewModelProvider(this, viewModelFactory)[ChatViewViewModel::class.java]
+        viewModel = ViewModelProvider(requireActivity(), viewModelFactory)[ChatViewViewModel::class.java]
         binding.chatViewViewModel = viewModel
-        binding.lifecycleOwner = this
+        binding.lifecycleOwner = requireActivity()
 
         val adapter = MessageItemAdapter(requireContext())
         binding.messageView.adapter = adapter

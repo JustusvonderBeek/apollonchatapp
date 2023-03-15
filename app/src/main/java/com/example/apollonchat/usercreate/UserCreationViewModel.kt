@@ -10,7 +10,11 @@ import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
 import com.example.apollonchat.networking.packets.Create
 import com.example.apollonchat.networking.Networking
+import com.example.apollonchat.networking.constants.ContactType
+import com.example.apollonchat.networking.constants.PacketCategories
 import kotlinx.coroutines.*
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import java.net.InetAddress
 import kotlin.random.Random
 import kotlin.random.nextUInt
@@ -45,14 +49,14 @@ class UserCreationViewModel(val userDatabase : UserDatabaseDao, val application:
     val navigateUserListEvent : LiveData<Boolean>
         get() = _navigateUserListEvent
 
+    private var json = Json { ignoreUnknownKeys = true }
+
     init {
         userImage.value = "@drawable/usericon.png"
         _navigateUserListEvent.value = false
         _clickable.value = true
-        Networking.registerContactCreatedCallback {
-            uiScope.launch {
-                userCreated(it)
-            }
+        uiScope.launch {
+            registerUserCreationCallback()
         }
     }
 
@@ -71,8 +75,22 @@ class UserCreationViewModel(val userDatabase : UserDatabaseDao, val application:
         _clickable.value = false
     }
 
+    private suspend fun registerUserCreationCallback() {
+        Networking.registerCallback(PacketCategories.CONTACT.cat.toLong(), ContactType.CREATE.type.toLong()) { packet ->
+            uiScope.launch {
+                val createAnswer = json.decodeFromString<Create>(packet)
+                val newUser = User(createAnswer.UserId.toLong(), createAnswer.Username, userImage = "drawable/usericon.png")
+                userCreated(newUser)
+                Log.i("UserCreationViewModel", "Wrote user into database")
+                _navigateUserListEvent.value = true
+            }
+        }
+    }
+
     private suspend fun userCreated(user : User) {
-        insertNewUserToDatabase(user)
+        withContext(Dispatchers.IO) {
+            insertNewUserToDatabase(user)
+        }
         // The variables must be set on the main thread
         withContext(Dispatchers.Main) {
             _navigateUserListEvent.value = true

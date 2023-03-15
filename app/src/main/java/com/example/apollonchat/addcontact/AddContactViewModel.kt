@@ -10,8 +10,13 @@ import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
 import com.example.apollonchat.networking.packets.NetworkContact
 import com.example.apollonchat.networking.Networking
+import com.example.apollonchat.networking.constants.ContactType
+import com.example.apollonchat.networking.constants.PacketCategories
+import com.example.apollonchat.networking.packets.ContactList
 import com.example.apollonchat.networking.packets.Search
 import kotlinx.coroutines.*
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import java.net.InetAddress
 import kotlin.random.Random
 import kotlin.random.nextUInt
@@ -21,6 +26,11 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
     // Suspend functions
     private var viewModelJob = Job()
     private val uiScope = CoroutineScope(Dispatchers.Main + viewModelJob)
+
+    override fun onCleared() {
+        super.onCleared()
+        viewModelJob.cancel()
+    }
 
     // Data
     private val _contactList = mutableListOf<Contact>()
@@ -32,19 +42,41 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
     val navigateToContactListEvent : LiveData<Boolean>
         get() = _navigateToContactListEvent
 
+    private val _hideKeyboard = MutableLiveData<Boolean>()
+    val hideKeyboard : LiveData<Boolean>
+        get() = _hideKeyboard
+
     val contactName = MutableLiveData<String>()
 
     private var _user : User? = null
+
+    private var json = Json { ignoreUnknownKeys = true }
 
     init {
         Log.i("AddContactViewModel", "Add Contact VM created")
         uiScope.launch {
             loadUser()
         }
+        uiScope.launch {
+            registerAddContactCallback()
+        }
         contactName.value = ""
         _navigateToContactListEvent.value = false
         _contacts.value = mutableListOf()
-        Networking.registerContactViewModel(this)
+        _hideKeyboard.value = false
+//        Networking.registerContactViewModel(this)
+    }
+
+    private fun registerAddContactCallback() {
+        Networking.registerCallback(PacketCategories.CONTACT.cat.toLong(), ContactType.CONTACTS.type.toLong()) {packet ->
+            Log.i("AddContactViewModel", "Executing contacts callback")
+            val contacts = json.decodeFromString<ContactList>(packet)
+            contacts.Contacts?.let {
+                uiScope.launch {
+                    showContacts(it)
+                }
+            }
+        }
     }
 
     fun searchContacts() {
@@ -58,16 +90,19 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
             Log.i("AddContactViewModel", "Search: $search")
             // Should make sure that the start thingy was already called
             uiScope.launch {
-                withContext(Dispatchers.IO) {
-                    Networking.start(InetAddress.getLocalHost(), database, null, null) // TODO: This is NOT correct but since the address is not taken, its good for now!
-                    Networking.write(search)
-                }
+                writeSearchPacket(search)
             }
-
+            _hideKeyboard.value = true
         }
     }
 
-    fun showContacts(contacts : List<NetworkContact>) {
+    private suspend fun writeSearchPacket(search: Search) {
+        withContext(Dispatchers.IO) {
+            Networking.write(search)
+        }
+    }
+
+    private suspend fun showContacts(contacts : List<NetworkContact>) {
         Log.i("AddContactViewModel", "Showing contacts (${contacts.size})")
         // Clear contact list
         _contactList.clear()
@@ -76,11 +111,9 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
             Log.i("AddContactViewModel", "New contact: $newContact")
             _contactList.add(newContact)
         }
-        // Update the observer
-        uiScope.launch {
-            withContext(Dispatchers.Main) {
-                _contacts.value = _contactList
-            }
+        withContext(Dispatchers.Main) {
+            // Update the observer
+            _contacts.value = _contactList
         }
     }
 
@@ -98,7 +131,13 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
     }
 
     fun onContactListNavigated() {
+        _contactList.clear()
+        _contacts.value = listOf()
         _navigateToContactListEvent.value = false
+    }
+
+    fun hideKeyboardDone() {
+        _hideKeyboard.value = false
     }
 
     private suspend fun insertContactIntoDatabase(contact: Contact) {
@@ -118,8 +157,7 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
 
     private suspend fun loadUser() {
         val user = withContext(Dispatchers.IO) {
-            val user = uDatabase.getUser()
-            return@withContext user
+            return@withContext uDatabase.getUser()
         }
         if (user != null) {
             _user = user

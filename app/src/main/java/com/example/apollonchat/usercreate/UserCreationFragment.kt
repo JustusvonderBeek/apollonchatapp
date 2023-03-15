@@ -36,12 +36,20 @@ class UserCreationFragment : Fragment() {
         viewModel = ViewModelProvider(this, viewModelFactory)[UserCreationViewModel::class.java]
 
         binding.userCreationViewModel = viewModel
-        binding.lifecycleOwner = this
+        binding.lifecycleOwner = requireActivity()
 
         viewModel.navigateUserListEvent.observe(viewLifecycleOwner, Observer { navigate ->
             if (navigate) {
                 viewModel.onUserListNavigated()
-                findNavController().navigate(R.id.navigation_chat_list)
+//                findNavController().navigate(R.id.navigation_chat_list)
+                findNavController().navigateUp()
+            }
+        })
+
+        viewModel.user.observe(viewLifecycleOwner, Observer { user ->
+            user?.let {
+                viewModel.onUserListNavigated()
+                findNavController().navigateUp()
             }
         })
 

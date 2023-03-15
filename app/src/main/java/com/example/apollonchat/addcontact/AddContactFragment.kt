@@ -1,9 +1,11 @@
 package com.example.apollonchat.addcontact
 
+import android.app.Activity
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
@@ -38,7 +40,8 @@ class AddContactFragment : Fragment() {
         val uDatabase = ApollonDatabase.getInstance(application).userDao()
 
         viewModelFactory = AddContactViewModelFactory(uDatabase, database)
-        viewModel = ViewModelProvider(this, viewModelFactory)[AddContactViewModel::class.java]
+        // Setting the activity as lifecycle owner so that it is not destroyed when navigating back to the main screen
+        viewModel = ViewModelProvider(requireActivity(), viewModelFactory)[AddContactViewModel::class.java]
 
         binding.addConctactViewModel = viewModel
         binding.lifecycleOwner = this
@@ -55,8 +58,13 @@ class AddContactFragment : Fragment() {
         }
 
         viewModel.contacts.observe(viewLifecycleOwner, Observer { newList ->
-            newList?.let {
+            if (newList == null) {
+                adapter.submitList(listOf())
+                adapter.notifyDataSetChanged()
+            } else {
                 adapter.submitList(newList)
+                // Should be "okay" for now since the list of potential contacts is wiped and not that long either
+                adapter.notifyDataSetChanged()
             }
         })
 
@@ -64,6 +72,16 @@ class AddContactFragment : Fragment() {
             if(navigate) {
                 viewModel.onContactListNavigated()
                 findNavController().navigate(R.id.navigation_chat_list)
+            }
+        })
+
+        viewModel.hideKeyboard.observe(viewLifecycleOwner, Observer {hide ->
+            if(hide) {
+                val inputManager = requireActivity().getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
+                if (requireActivity().currentFocus != null) {
+                    inputManager.hideSoftInputFromWindow(requireActivity().currentFocus!!.windowToken, 0)
+                    viewModel.hideKeyboardDone()
+                }
             }
         })
 
