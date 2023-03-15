@@ -13,6 +13,7 @@ import io.ktor.network.tls.*
 import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -49,6 +50,7 @@ object Networking {
     var socket : Socket? = null
     var connectSecure : Boolean = false
     var remoteAddress : InetAddress? = null
+    var startLock : Mutex = Mutex(false)
     var started : Boolean = false
     var sending : Boolean = false
     var receiving : Boolean = false
@@ -172,38 +174,49 @@ object Networking {
         if (!connected) {
             if (connectSecure) {
                 netScope.launch {
+                    startLock.lock(this)
                     connectSecure()
+                    startLock.unlock(this)
                 }
             } else {
                 netScope.launch {
+                    startLock.lock(this)
                     connectDefault()
+                    startLock.unlock(this)
                 }
             }
         }
 
-        if (!sending) {
-            thread {
-                netScope.launch {
-                    startSending()
+        // and therefore they fail
+        netScope.launch {
+            // TODO: Make this BETTER!!! Important, only some lazy fix!!!
+            startLock.lock(this)
+            startLock.unlock(this)
+            if (!sending) {
+                thread {
+                    netScope.launch {
+                        startSending()
+                    }
+                }
+            }
+            if (!receiving) {
+                thread {
+                    netScope.launch {
+                        startListening()
+                    }
                 }
             }
         }
-        if (!receiving) {
-            thread {
-                netScope.launch {
-                    startListening()
-                }
-            }
-        }
+
     }
 
     private suspend fun connectDefault() {
          val con = withContext(Dispatchers.IO) {
             val selManager = SelectorManager(Dispatchers.IO)
             try {
-                // This address should emulate the localhost address
                 socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50000)
-//                        socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50000)
+                // This address should emulate the localhost address
+//                socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50000)
 //                        socket = aSocket(selManager).tcp().connect("192.168.178.53", port = 50000)
                 Log.i("Networking", "Connected to remote per TCP")
                 return@withContext true
@@ -220,7 +233,8 @@ object Networking {
             // The TLS variant
             try {
                 val selManager = SelectorManager(Dispatchers.IO)
-                socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50001).tls(coroutineContext = coroutineContext) {
+//                socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50001).tls(coroutineContext = coroutineContext) {
+                socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50001).tls(coroutineContext = coroutineContext) {
                     trustManager = object : X509TrustManager {
                         override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
                         override fun checkClientTrusted(p0: Array<out X509Certificate>?, p1: String?) {}
