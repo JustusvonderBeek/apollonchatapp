@@ -16,9 +16,8 @@ import com.example.apollonchat.networking.Networking
 import io.ktor.util.date.*
 import kotlinx.coroutines.*
 import java.io.IOException
-import java.net.Inet4Address
 
-class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, val uDatabase : UserDatabaseDao, val mDatabase : MessageDao, val application: Application) : ViewModel() {
+class ChatViewViewModel(val contactID: Long, val contactDatabase: ContactDatabaseDao, val userDatabase : UserDatabaseDao, val messageDatabase : MessageDao, val application: Application) : ViewModel() {
 
     private var viewModelJob = Job()
     private val uiScope = CoroutineScope(Dispatchers.Main + viewModelJob)
@@ -29,7 +28,7 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
         get() = _contact
 
     // Used to display messages in the fragment
-    private val _messages = mDatabase.getMessagesLive(contactID)
+    private val _messages = messageDatabase.getMessagesLive(contactID)
     val messages : LiveData<MutableList<DisplayMessage>>
         get() = _messages
 
@@ -73,6 +72,12 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
             uiScope.launch {
                 insertMessage(displayMessage)
             }
+
+            // Adding the last message to the contact to show in the list preview
+            uiScope.launch {
+                updateLastMessage(message!!)
+            }
+
 //            _messages.value!!.add(displayMessage)
 
 
@@ -119,9 +124,19 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
 //        return res
 //    }
 
+    private suspend fun updateLastMessage(message : String) {
+        withContext(Dispatchers.IO) {
+            val contact = contactDatabase.getContact(contactID)
+            if (contact != null) {
+                contact.lastMessage = message
+                contactDatabase.updateContact(contact)
+            }
+        }
+    }
+
     private suspend fun insertMessage(message: DisplayMessage) {
         withContext(Dispatchers.IO) {
-            mDatabase.insertMessage(message)
+            messageDatabase.insertMessage(message)
         }
     }
 
@@ -133,7 +148,7 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
 
     private suspend fun loadContactFromDatabase(contactID: Long) : Contact {
         val contact = withContext(Dispatchers.IO) {
-            val chatContact = database.getContact(contactID) ?: throw IOException("User $contactID not found!")
+            val chatContact = contactDatabase.getContact(contactID) ?: throw IOException("User $contactID not found!")
             chatContact
         }
         return contact
@@ -141,13 +156,13 @@ class ChatViewViewModel(val contactID: Long, val database: ContactDatabaseDao, v
 
     private suspend fun updateContactInDatabase(contact : Contact) {
         withContext(Dispatchers.IO) {
-            database.updateContact(contact)
+            contactDatabase.updateContact(contact)
         }
     }
 
     private  suspend fun loadUser() {
         val user = withContext(Dispatchers.IO) {
-            return@withContext uDatabase.getUser()
+            return@withContext userDatabase.getUser()
         }
         if (user != null) {
             this._user = user
