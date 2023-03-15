@@ -74,6 +74,12 @@ class ChatListViewModel(val contactDatabase : ContactDatabaseDao, val userDataba
                 }
                 val dm = DisplayMessage(oldMessageId.toLong(), message.UserId.toLong(), false, message.Message, message.Timestamp)
                 messageDatabase.insertMessage(dm)
+                // Update the last message into the contact user database to be able to show in the preview
+                val contact = contactDatabase.getContact(message.UserId.toLong())
+                if (contact != null) {
+                    contact.lastMessage = message.Message
+                    contactDatabase.updateContact(contact)
+                }
             }
         }
     }
@@ -111,7 +117,7 @@ class ChatListViewModel(val contactDatabase : ContactDatabaseDao, val userDataba
 
     private suspend fun startNetwork() {
         withContext(Dispatchers.IO) {
-            Networking.initialize(InetAddress.getByName("homecloud.homeplex.org"), contactDatabase, userDatabase, messageDatabase)
+            Networking.initialize(InetAddress.getByName("homecloud.homeplex.org"), contactDatabase, userDatabase, messageDatabase, tls = false)
             Networking.start()
         }
     }
