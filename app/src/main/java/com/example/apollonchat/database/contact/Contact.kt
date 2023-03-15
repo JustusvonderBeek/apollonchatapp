@@ -13,11 +13,11 @@ data class Contact (
     var contactName : String = "",
     @ColumnInfo(name = "contact_image")
     var contactImagePath : String = "drawable/usericon.png",
-    var messages : MutableList<String> = mutableListOf(),
+    var lastMessage : String = "",
 ) {
     constructor(
         contactId : Long,
         contactName: String,
         contactImagePath: String,
-    ) : this(contactId, contactName, contactImagePath, mutableListOf())
+    ) : this(contactId, contactName, contactImagePath, "")
 }

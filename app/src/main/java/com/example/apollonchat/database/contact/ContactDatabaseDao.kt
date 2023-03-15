@@ -20,9 +20,6 @@ interface ContactDatabaseDao {
     @Query("SELECT * FROM contact_table ORDER BY contact_name ASC")
     fun getAllContacts() : LiveData<List<Contact>>
 
-    @Query("SELECT messages FROM contact_table WHERE contactId = :key")
-    fun getMessages(key: Long) : LiveData<MutableList<String>>
-
     @Query("SELECT * FROM contact_table WHERE contactId = :key")
     fun getContact(key : Long) : Contact?
 
