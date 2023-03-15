@@ -14,4 +14,10 @@ data class Contact (
     @ColumnInfo(name = "contact_image")
     var contactImagePath : String = "drawable/usericon.png",
     var messages : MutableList<String> = mutableListOf(),
-)
+) {
+    constructor(
+        contactId : Long,
+        contactName: String,
+        contactImagePath: String,
+    ) : this(contactId, contactName, contactImagePath, mutableListOf())
+}
