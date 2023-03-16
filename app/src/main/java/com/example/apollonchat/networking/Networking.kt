@@ -73,6 +73,24 @@ object Networking {
     private var networkingJob = Job()
     private val netScope = CoroutineScope(Dispatchers.Main + networkingJob)
 
+    /*
+    ----------------------------------------------------------------
+    Write methods for the Apollon protocol
+    ----------------------------------------------------------------
+     */
+
+    fun write(data : Login) {
+        try {
+            netScope.launch {
+                data.MessageId = lastMessageId++
+                val stringData = json.encodeToString(data)
+                write(stringData)
+            }
+        } catch (ex : IOException) {
+            ex.printStackTrace()
+        }
+    }
+
     fun write(data : ContactOption) {
         try {
             netScope.launch {
@@ -261,6 +279,12 @@ object Networking {
         return (upper.toUInt() shl 8) + lower.toUInt()
     }
 
+    /*
+    ----------------------------------------------------------------
+    Internal state : Sending and Receiving
+    ----------------------------------------------------------------
+     */
+
     private suspend fun startSending() {
         Log.i("Networking", "Starting to send...")
         val con = withContext(Dispatchers.IO) {
@@ -327,13 +351,5 @@ object Networking {
         }
         this.receiving = con
     }
-
-
-
-    /*
-    ----------------------------------------------------------------
-    Singleton
-    ----------------------------------------------------------------
-     */
 
 }
