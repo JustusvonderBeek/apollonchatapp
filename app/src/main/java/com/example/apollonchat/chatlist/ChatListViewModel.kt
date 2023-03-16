@@ -119,8 +119,8 @@ class ChatListViewModel(val contactDatabase : ContactDatabaseDao, val userDataba
 
     private suspend fun startNetwork() {
         withContext(Dispatchers.IO) {
-            Networking.initialize(InetAddress.getByName("homecloud.homeplex.org"), contactDatabase, userDatabase, messageDatabase, tls = false)
-            Networking.start()
+            Networking.initialize(InetAddress.getByName("homecloud.homeplex.org"), contactDatabase, userDatabase, messageDatabase, tls = true)
+            Networking.start(application.applicationContext)
             // Login only makes sense if we send the correct UInt
             if (_user.value != null) {
                 val userId = _user.value!!.userId.toUInt()
@@ -159,7 +159,7 @@ class ChatListViewModel(val contactDatabase : ContactDatabaseDao, val userDataba
 
     private suspend fun reconnectNetwork() {
         withContext(Dispatchers.IO) {
-            Networking.start()
+            Networking.start(application.applicationContext)
         }
     }
 
