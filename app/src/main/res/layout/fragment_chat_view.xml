@@ -81,6 +81,7 @@
             android:layout_marginBottom="8dp"
             android:ems="10"
             android:hint="Insert Message"
+            style="@style/EditTextMessageInput"
             android:inputType="textMultiLine|textPersonName"
             android:text="@={chatViewViewModel.inputMessage}"
             android:textAlignment="viewStart"
