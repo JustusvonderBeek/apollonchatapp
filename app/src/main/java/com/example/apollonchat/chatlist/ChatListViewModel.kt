@@ -16,6 +16,7 @@ import com.example.apollonchat.networking.constants.ContactType
 import com.example.apollonchat.networking.constants.DataType
 import com.example.apollonchat.networking.constants.PacketCategories
 import com.example.apollonchat.networking.packets.ContactOption
+import com.example.apollonchat.networking.packets.Login
 import com.example.apollonchat.networking.packets.Message
 import com.example.apollonchat.networking.packets.NetworkOption
 import kotlinx.coroutines.*
@@ -87,6 +88,7 @@ class ChatListViewModel(val contactDatabase : ContactDatabaseDao, val userDataba
     private suspend fun registerCallbackForFriendRequests() {
         withContext(Dispatchers.IO) {
             Networking.registerCallback(PacketCategories.CONTACT.cat.toLong(), ContactType.OPTION.type.toLong()) { packet ->
+                Log.i("ChatListViewModel","Got incoming friend request")
                 val option = json.decodeFromString<ContactOption>(packet)
                 var contactRequest = false
                 for (opt in option.Options) {
@@ -119,6 +121,14 @@ class ChatListViewModel(val contactDatabase : ContactDatabaseDao, val userDataba
         withContext(Dispatchers.IO) {
             Networking.initialize(InetAddress.getByName("homecloud.homeplex.org"), contactDatabase, userDatabase, messageDatabase, tls = false)
             Networking.start()
+            // Login only makes sense if we send the correct UInt
+            if (_user.value != null) {
+                val userId = _user.value!!.userId.toUInt()
+                val login = Login(userId)
+                Log.i("ChatListViewModel", "Sending login $login")
+                Networking.write(login)
+            }
+
         }
     }
 
