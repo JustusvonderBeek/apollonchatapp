@@ -1,5 +1,6 @@
 package com.example.apollonchat.networking
 
+import android.content.Context
 import android.util.Log
 import com.example.apollonchat.addcontact.AddContactViewModel
 import com.example.apollonchat.database.contact.ContactDatabaseDao
@@ -17,8 +18,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
 import java.net.InetAddress
+import java.net.URI
+import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import java.util.Hashtable
 import java.util.concurrent.ArrayBlockingQueue
@@ -184,7 +189,7 @@ object Networking {
         }
     }
 
-    fun start() {
+    fun start(context : Context) {
         if (!init) {
             throw IllegalStateException("'start()' called before 'initialize()'!")
         }
@@ -193,7 +198,7 @@ object Networking {
             if (connectSecure) {
                 netScope.launch {
                     startLock.lock(this)
-                    connectSecure()
+                    connectSecure(context)
                     startLock.unlock(this)
                 }
             } else {
@@ -246,17 +251,27 @@ object Networking {
         connected = con
     }
 
-    private suspend fun connectSecure() {
+    private suspend fun connectSecure(context: Context) {
         val con = withContext(Dispatchers.IO) {
             // The TLS variant
             try {
                 val selManager = SelectorManager(Dispatchers.IO)
 //                socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50001).tls(coroutineContext = coroutineContext) {
+                val certFactory = CertificateFactory.getInstance("X.509")
+                val serverPath = File(context.filesDir.toString() + "/" + "networking/certificate/apollon.crt")
+                val serverCert = certFactory.generateCertificate(FileInputStream(serverPath)) as X509Certificate
                 socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50001).tls(coroutineContext = coroutineContext) {
                     trustManager = object : X509TrustManager {
-                        override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-                        override fun checkClientTrusted(p0: Array<out X509Certificate>?, p1: String?) {}
-                        override fun checkServerTrusted(p0: Array<out X509Certificate>?, p1: String?) {}
+                        override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf(
+                            serverCert
+                        )
+                        override fun checkClientTrusted(p0: Array<out X509Certificate>?, p1: String?) {
+
+                        }
+                        override fun checkServerTrusted(p0: Array<out X509Certificate>?, p1: String?) {
+
+
+                        }
                     }
                 }
                 Log.i("Networking", "Connected to remote per TLS")
