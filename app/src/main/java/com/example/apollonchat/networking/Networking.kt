@@ -2,11 +2,13 @@ package com.example.apollonchat.networking
 
 import android.content.Context
 import android.util.Log
+import com.example.apollonchat.R
 import com.example.apollonchat.addcontact.AddContactViewModel
 import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.message.MessageDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
+import com.example.apollonchat.networking.certificate.ApollonNetworkConfigCreator
 import com.example.apollonchat.networking.packets.*
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
@@ -18,17 +20,11 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.io.File
-import java.io.FileInputStream
 import java.io.IOException
 import java.net.InetAddress
-import java.net.URI
-import java.security.cert.CertificateFactory
-import java.security.cert.X509Certificate
 import java.util.Hashtable
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.BlockingQueue
-import javax.net.ssl.X509TrustManager
 import kotlin.concurrent.thread
 import kotlin.random.Random
 import kotlin.random.nextUInt
@@ -181,9 +177,6 @@ object Networking {
             if (userDatabase == null) userDatabase = userDao
             if (messageDatabase == null) messageDatabase = messageDao
             if (remoteAddress == null) remoteAddress = remote
-            if (outputQueue == null) outputQueue = ArrayBlockingQueue(20)
-            if (inputQueue == null) inputQueue = ArrayBlockingQueue(20)
-            if (outputChannel == null) outputChannel = Channel(20)
             connectSecure = tls
             init = true
         }
@@ -200,6 +193,7 @@ object Networking {
                     startLock.lock(this)
                     connectSecure(context)
                     startLock.unlock(this)
+//                    Log.i("Networking", "Exited connectSecure")
                 }
             } else {
                 netScope.launch {
@@ -256,24 +250,11 @@ object Networking {
             // The TLS variant
             try {
                 val selManager = SelectorManager(Dispatchers.IO)
-//                socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50001).tls(coroutineContext = coroutineContext) {
-                val certFactory = CertificateFactory.getInstance("X.509")
-                val serverPath = File(context.filesDir.toString() + "/" + "networking/certificate/apollon.crt")
-                val serverCert = certFactory.generateCertificate(FileInputStream(serverPath)) as X509Certificate
-                socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50001).tls(coroutineContext = coroutineContext) {
-                    trustManager = object : X509TrustManager {
-                        override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf(
-                            serverCert
-                        )
-                        override fun checkClientTrusted(p0: Array<out X509Certificate>?, p1: String?) {
+                val tlsConfig = ApollonNetworkConfigCreator.createTlsConfig(context.resources.openRawResource(R.raw.apollon))
+                // First connecting to the remote endpoint via normal TCP
+//                val tcpSocket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50001).tls(coroutineContext)
+                socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50001).tls(Dispatchers.IO, tlsConfig)
 
-                        }
-                        override fun checkServerTrusted(p0: Array<out X509Certificate>?, p1: String?) {
-
-
-                        }
-                    }
-                }
                 Log.i("Networking", "Connected to remote per TLS")
                 return@withContext true
             } catch (ex : IOException) {
