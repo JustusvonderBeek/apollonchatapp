@@ -182,50 +182,45 @@ object Networking {
         }
     }
 
-    fun start(context : Context) {
+    suspend fun start(context : Context) {
         if (!init) {
             throw IllegalStateException("'start()' called before 'initialize()'!")
         }
 
+        // Connecting to the endpoint
         if (!connected) {
             if (connectSecure) {
-                netScope.launch {
-                    startLock.lock(this)
-                    connectSecure(context)
-                    startLock.unlock(this)
+                connectSecure(context)
 //                    Log.i("Networking", "Exited connectSecure")
-                }
             } else {
+                connectDefault()
+            }
+//            Log.i("Networking", "After connection launch")
+        } else {
+            Log.i("Networking", "Endpoint already connected!")
+        }
+
+        // Then starting to send and receiver
+        if (!sending) {
+            thread {
                 netScope.launch {
-                    startLock.lock(this)
-                    connectDefault()
-                    startLock.unlock(this)
+                 startSending()
                 }
             }
+        } else {
+            Log.i("Networking", "Already sending!")
         }
-
-        // and therefore they fail
-        netScope.launch {
-            // TODO: Make this BETTER!!! Important, only some lazy fix!!!
-            startLock.lock(this)
-            startLock.unlock(this)
-            if (!sending) {
-                thread {
-                    netScope.launch {
-                        startSending()
-                    }
+        if (!receiving) {
+            thread {
+                netScope.launch {
+                    startListening()
                 }
             }
-            if (!receiving) {
-                thread {
-                    netScope.launch {
-                        startListening()
-                    }
-                }
-            }
+        } else {
+            Log.i("Networking", "Already receiving!")
         }
-
     }
+
 
     private suspend fun connectDefault() {
          val con = withContext(Dispatchers.IO) {
@@ -251,8 +246,8 @@ object Networking {
             try {
                 val selManager = SelectorManager(Dispatchers.IO)
                 val tlsConfig = ApollonNetworkConfigCreator.createTlsConfig(context.resources.openRawResource(R.raw.apollon))
-                // First connecting to the remote endpoint via normal TCP
-//                val tcpSocket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50001).tls(coroutineContext)
+                // If the context is set as 'coroutineContext' then the method DOES NOT return back to the caller side!
+//                socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50001).tls(Dispatchers.IO, tlsConfig)
                 socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50001).tls(Dispatchers.IO, tlsConfig)
 
                 Log.i("Networking", "Connected to remote per TLS")
@@ -286,6 +281,7 @@ object Networking {
         val con = withContext(Dispatchers.IO) {
             try {
                 val sendChannel = socket!!.openWriteChannel(autoFlush = true)
+                sending = true
                 while (true) {
                     // Fetching the next packet from the queue of packets that should be sent
                     val nextPacket = outputChannel.receive()
@@ -293,17 +289,13 @@ object Networking {
 
                     sendChannel.toOutputStream().write(nextPacket)
                 }
-                return@withContext true
             } catch (ex : NullPointerException) {
                 Log.i("Networking", "Failed to init send channel for remote")
-                return@withContext false
             } catch (ex : IOException) {
                 Log.i("Networking", "Failed to send to remote")
-                return@withContext false
             }
         }
-        // Should only ever be false
-        this.sending = con
+        sending = false
     }
 
     private suspend fun startListening() {
@@ -311,6 +303,7 @@ object Networking {
         val con = withContext(Dispatchers.IO) {
             try {
                 val recChannel = socket!!.openReadChannel().toInputStream()
+                receiving = true
                 val sizeBuffer = ByteArray(2)
                 while(true) {
                     var read = recChannel.read(sizeBuffer, 0, 2)
@@ -336,16 +329,13 @@ object Networking {
                         }
                     }
                 }
-                return@withContext true
             } catch (ex : NullPointerException) {
                 Log.i("Networking", "Failed to get read channel for remote")
-                return@withContext false
             } catch (ex : IOException) {
                 Log.i("Networking", "Failed to read from remote")
-                return@withContext false
             }
         }
-        this.receiving = con
+        this.receiving = false
     }
 
 }
