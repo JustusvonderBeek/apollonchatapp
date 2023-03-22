@@ -88,7 +88,7 @@ class ChatListViewModel(val contactDatabase : ContactDatabaseDao, val userDataba
     private suspend fun registerCallbackForFriendRequests() {
         withContext(Dispatchers.IO) {
             Networking.registerCallback(PacketCategories.CONTACT.cat.toLong(), ContactType.OPTION.type.toLong()) { packet ->
-                Log.i("ChatListViewModel","Got incoming friend request")
+                Log.i("ChatListViewModel","Got incoming friend request: $packet")
                 val option = json.decodeFromString<ContactOption>(packet)
                 var contactRequest = false
                 for (opt in option.Options) {
@@ -119,16 +119,22 @@ class ChatListViewModel(val contactDatabase : ContactDatabaseDao, val userDataba
 
     private suspend fun startNetwork() {
         withContext(Dispatchers.IO) {
-            Networking.initialize(InetAddress.getByName("homecloud.homeplex.org"), contactDatabase, userDatabase, messageDatabase, tls = true)
-            Networking.start(application.applicationContext)
-            // Login only makes sense if we send the correct UInt
-            if (_user.value != null) {
-                val userId = _user.value!!.userId.toUInt()
-                val login = Login(userId)
-                Log.i("ChatListViewModel", "Sending login $login")
-                Networking.write(login)
+            try {
+                // Resolving the network address without Internet results in a failure
+                Networking.initialize(InetAddress.getByName("10.0.2.2"), contactDatabase, userDatabase, messageDatabase, tls = true)
+//            Networking.initialize(InetAddress.getByName("homecloud.homeplex.org"), contactDatabase, userDatabase, messageDatabase, tls = true)
+                Networking.start(application.applicationContext)
+                // Login only makes sense if we send the correct UInt
+                if (_user.value != null) {
+                    val userId = _user.value!!.userId.toUInt()
+                    val login = Login(userId)
+                    Log.i("ChatListViewModel", "Sending login $login")
+                    Networking.write(login)
+                }
+                return@withContext
+            } catch (ex : Exception) {
+                Log.i("ChatListViewModel", "Failed to resolve addr: $ex")
             }
-
         }
     }
 
