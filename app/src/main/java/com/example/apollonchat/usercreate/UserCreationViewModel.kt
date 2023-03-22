@@ -115,7 +115,9 @@ class UserCreationViewModel(val userDatabase : UserDatabaseDao, val application:
     }
 
     fun reconnectNetwork() {
-        Networking.start(application.applicationContext)
+        uiScope.launch {
+            Networking.start(application.applicationContext)
+        }
     }
 
     fun onUserListNavigated() {
