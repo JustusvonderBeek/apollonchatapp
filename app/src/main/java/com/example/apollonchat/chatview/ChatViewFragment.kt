@@ -51,7 +51,8 @@ class ChatViewFragment : Fragment() {
         val mDataSource = ApollonDatabase.getInstance(application).messageDao()
 
         viewModelFactory = ChatViewViewModelFactory(args.contactID, dataSource, uDataSource, mDataSource, application)
-        viewModel = ViewModelProvider(requireActivity(), viewModelFactory)[ChatViewViewModel::class.java]
+        // We don't want the view model to survive navigate up. Therefore using "this"
+        viewModel = ViewModelProvider(this, viewModelFactory)[ChatViewViewModel::class.java]
         binding.chatViewViewModel = viewModel
         binding.lifecycleOwner = requireActivity()
 
