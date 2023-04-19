@@ -20,7 +20,7 @@ import kotlinx.coroutines.*
 import java.io.File
 import java.io.IOException
 
-class ChatViewViewModel(val contactID: Long, val contactDatabase: ContactDatabaseDao, val userDatabase : UserDatabaseDao, val messageDatabase : MessageDao, val application: Application) : ViewModel() {
+class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactDatabaseDao, val userDatabase : UserDatabaseDao, val messageDatabase : MessageDao, val application: Application) : ViewModel() {
 
     private var viewModelJob = Job()
     private val uiScope = CoroutineScope(Dispatchers.Main + viewModelJob)
@@ -36,6 +36,7 @@ class ChatViewViewModel(val contactID: Long, val contactDatabase: ContactDatabas
         get() = _messages
 
     private var _user : User? = null
+    private var userId : Long = 0L
 
     private val _hideKeyboard = MutableLiveData<Boolean>()
     val hideKeyboard : LiveData<Boolean>
@@ -48,11 +49,8 @@ class ChatViewViewModel(val contactID: Long, val contactDatabase: ContactDatabas
     init {
         Log.i("ChatViewViewModel", "Init for $contactID")
         _hideKeyboard.value = false
+        loadUser(contactID)
         loadMessages(contactID)
-        uiScope.launch {
-            loadUser()
-        }
-        // TODO: Fix the path
         userImage.value = File(application.applicationContext.filesDir, "$contactID.jpeg").absolutePath
 //        userImage.value = Uri.parse("android.resource://" + R.drawable.owl).path
     }
@@ -63,20 +61,21 @@ class ChatViewViewModel(val contactID: Long, val contactDatabase: ContactDatabas
         if (message != null && !message.contentEquals("")) {
             Log.i("ChatViewViewModel", "Message != null")
 
-            var userId = 12345U
+            var nUserId = 12345U
             if (_user != null) {
-                userId = _user!!.userId.toUInt()
+//                userId = _user!!.userId.toUInt()
+                nUserId = userId.toUInt()
             }
             var messageId = 0
             if (_messages.value != null) {
                 messageId = _messages.value!!.size + 1
             }
-            val netMessage = Message(UserId = userId, MessageId = messageId.toUInt(), ContactUserId = contactID.toUInt(), Timestamp = getTimeMillis().toString(), Part = 0U, Message = message)
+            val netMessage = Message(UserId = nUserId, MessageId = messageId.toUInt(), ContactUserId = contactID.toUInt(), Timestamp = getTimeMillis().toString(), Part = 0U, Message = message)
             uiScope.launch {
                 Networking.write(netMessage)
             }
 
-            val displayMessage = netMessage.toDisplayMessage(userId.toLong())
+            val displayMessage = netMessage.toDisplayMessage(nUserId.toLong())
             uiScope.launch {
                 insertMessage(displayMessage)
             }
@@ -168,12 +167,19 @@ class ChatViewViewModel(val contactID: Long, val contactDatabase: ContactDatabas
         }
     }
 
-    private  suspend fun loadUser() {
+    private fun loadUser(contactID: Long) {
+        uiScope.launch {
+            loadUserFromDatabase(contactID)
+        }
+    }
+
+    private suspend fun loadUserFromDatabase(contactID: Long) {
         val user = withContext(Dispatchers.IO) {
             return@withContext userDatabase.getUser()
         }
         if (user != null) {
             this._user = user
+            this.userId = user.userId
         }
     }
 
