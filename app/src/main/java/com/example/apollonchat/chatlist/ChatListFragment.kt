@@ -71,7 +71,7 @@ class ChatListFragment : Fragment(), MenuProvider {
         binding.lifecycleOwner = requireActivity()
 
         val adapter = ChatUserItemAdapter(ChatUserItemAdapter.ChatUserItemListener { contactId ->
-//            Log.i("ChatListFragment", "Got user $contactId")
+            Log.i("ChatListFragment", "Got user $contactId")
             viewModel.onContactClicked(contactId)
         }, requireContext())
         binding.userlist.adapter = adapter
@@ -83,9 +83,12 @@ class ChatListFragment : Fragment(), MenuProvider {
             }
         })
 
+        // Problems with automatically added users pointing to wrong ID and wrong chat
         viewModel.contacts.observe(viewLifecycleOwner, Observer {
             it?.let {
                 adapter.submitList(it)
+                // TODO: Make smarter
+                adapter.notifyDataSetChanged()
             }
 //            Log.i("ChatListFragment", "Updated users - now " + adapter.itemCount)
         })
@@ -93,8 +96,8 @@ class ChatListFragment : Fragment(), MenuProvider {
         viewModel.navigateToContactChat.observe(viewLifecycleOwner, Observer {contactID ->
             contactID?.let {
                 if(contactID != -1L) {
-                    viewModel.onContactNavigated()
                     this.findNavController().navigate(ChatListFragmentDirections.actionChatListFragmentToChatViewFragment(contactID))
+                    viewModel.onContactNavigated()
                 }
             }
         })
