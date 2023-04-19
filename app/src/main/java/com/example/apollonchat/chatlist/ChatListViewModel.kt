@@ -15,13 +15,17 @@ import com.example.apollonchat.networking.Networking
 import com.example.apollonchat.networking.constants.ContactType
 import com.example.apollonchat.networking.constants.DataType
 import com.example.apollonchat.networking.constants.PacketCategories
+import com.example.apollonchat.networking.packets.ContactInfo
 import com.example.apollonchat.networking.packets.ContactOption
 import com.example.apollonchat.networking.packets.Login
 import com.example.apollonchat.networking.packets.Message
 import com.example.apollonchat.networking.packets.NetworkOption
+import com.github.luben.zstd.Zstd
+import com.github.luben.zstd.ZstdBufferDecompressingStream
 import kotlinx.coroutines.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import java.io.File
 import java.net.InetAddress
 import kotlin.random.Random
 
@@ -63,11 +67,14 @@ class ChatListViewModel(val contactDatabase : ContactDatabaseDao, val userDataba
         uiScope.launch {
             registerCallbackForFriendRequests()
         }
+        uiScope.launch {
+            registerCallbackForContactInfo()
+        }
     }
 
     private suspend fun registerCallbackForIncomingMessages() {
         withContext(Dispatchers.IO) {
-            Networking.registerCallback(PacketCategories.DATA.cat.toLong(), DataType.TEXT.type.toLong()) { packet ->
+            Networking.registerCallback(PacketCategories.DATA.cat.toLong(), DataType.TEXT.type.toLong()) { packet, _ ->
                 val message = json.decodeFromString<Message>(packet)
                 var oldMessageId = 0
                 if (messageDatabase.getMessages(message.UserId.toLong()) != null) {
@@ -85,9 +92,34 @@ class ChatListViewModel(val contactDatabase : ContactDatabaseDao, val userDataba
         }
     }
 
+    private suspend fun registerCallbackForContactInfo() {
+        Log.i("ChatListViewModel", "Got incoming ContactInfo packet")
+        withContext(Dispatchers.IO) {
+            Networking.registerCallback(PacketCategories.CONTACT.cat.toLong(), ContactType.CONTACT_INFO.type.toLong()) { packet, input ->
+                val infoHeader = json.decodeFromString<ContactInfo>(packet)
+                var imageLength = infoHeader.ImageBytes
+                var imageBuffer = ByteArray(imageLength.toInt())
+                var read = input.read(imageBuffer)
+                if (read < imageLength.toInt()) {
+                    Log.i("ChatListViewModel", "Did not read all bytes in one go")
+                    return@registerCallback
+                }
+                Log.i("ChatListViewModel", "Got $read bytes of image data")
+                // TODO: Handle image
+//                var storageFile = File(application.applicationContext.filesDir, "${infoHeader.UserId}")
+                // Decompress from Zstd to png or jpeg
+                var decompressBuffer = ByteArray(imageLength.toInt() * 2)
+                Zstd.decompress(decompressBuffer, imageBuffer)
+                var storageFile = File(application.applicationContext.filesDir, "${infoHeader.UserId}.jpeg")
+                storageFile.writeBytes(decompressBuffer)
+                Log.i("ChatListViewModel", "Stored image to ${storageFile.absolutePath}")
+            }
+        }
+    }
+
     private suspend fun registerCallbackForFriendRequests() {
         withContext(Dispatchers.IO) {
-            Networking.registerCallback(PacketCategories.CONTACT.cat.toLong(), ContactType.OPTION.type.toLong()) { packet ->
+            Networking.registerCallback(PacketCategories.CONTACT.cat.toLong(), ContactType.OPTION.type.toLong()) { packet, _ ->
                 Log.i("ChatListViewModel","Got incoming friend request: $packet")
                 val option = json.decodeFromString<ContactOption>(packet)
                 var contactRequest = false
@@ -121,7 +153,7 @@ class ChatListViewModel(val contactDatabase : ContactDatabaseDao, val userDataba
         withContext(Dispatchers.IO) {
             try {
                 // Resolving the network address without Internet results in a failure
-                Networking.initialize(InetAddress.getByName("10.0.2.2"), contactDatabase, userDatabase, messageDatabase, tls = true)
+                Networking.initialize(InetAddress.getByName("10.0.2.2"), contactDatabase, userDatabase, messageDatabase, tls = false)
 //            Networking.initialize(InetAddress.getByName("homecloud.homeplex.org"), contactDatabase, userDatabase, messageDatabase, tls = true)
                 Networking.start(application.applicationContext)
                 // Login only makes sense if we send the correct UInt
