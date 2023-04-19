@@ -76,7 +76,7 @@ class UserCreationViewModel(val userDatabase : UserDatabaseDao, val application:
     }
 
     private suspend fun registerUserCreationCallback() {
-        Networking.registerCallback(PacketCategories.CONTACT.cat.toLong(), ContactType.CREATE.type.toLong()) { packet ->
+        Networking.registerCallback(PacketCategories.CONTACT.cat.toLong(), ContactType.CREATE.type.toLong()) { packet, _ ->
             uiScope.launch {
                 val createAnswer = json.decodeFromString<Create>(packet)
                 val newUser = User(createAnswer.UserId.toLong(), createAnswer.Username, userImage = "drawable/usericon.png")
