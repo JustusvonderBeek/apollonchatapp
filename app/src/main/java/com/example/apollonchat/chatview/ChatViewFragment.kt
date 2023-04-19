@@ -1,16 +1,21 @@
 package com.example.apollonchat.chatview
 
 import android.app.Activity
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import android.widget.ImageView
 import androidx.fragment.app.Fragment
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.navArgs
+import androidx.viewbinding.ViewBindings
 import com.example.apollonchat.R
 import com.example.apollonchat.chatlist.ChatListViewModel
 import com.example.apollonchat.chatlist.ChatListViewModelFactory
@@ -67,6 +72,29 @@ class ChatViewFragment : Fragment() {
                     viewModel.hideKeyboardDone()
                 }
             }
+        })
+
+        viewModel.userImage.observe(viewLifecycleOwner, Observer { path ->
+            Log.i("ChatViewFragment", "Path: $path")
+            if (path != "") {
+                Log.i("ChatViewFragment", "Changing image path")
+                try {
+                    var image = BitmapFactory.decodeFile(path)
+                    if (image.height > 60) {
+                        // Resize to fit the image better
+                        var scaledImage = Bitmap.createScaledBitmap(image, 60, 60, true)
+                        image = scaledImage
+                    }
+                    binding.userImage.setImageBitmap(image)
+//                 binding.userImage.setImageResource(R.drawable.owl)
+                } catch (ex : Exception) {
+                    Log.i("ChatViewFragment", "Failed to load image from $path: $ex")
+                    binding.userImage.setImageResource(R.drawable.usericon)
+                }
+            } else {
+                binding.userImage.setImageResource(R.drawable.usericon)
+            }
+//            binding.userImage.setImageResource(R.drawable.owl)
         })
 
 //        viewModel.contact.observe(viewLifecycleOwner, Observer { cnt ->
