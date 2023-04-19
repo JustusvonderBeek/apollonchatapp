@@ -21,6 +21,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.IOException
+import java.io.InputStream
 import java.net.InetAddress
 import java.util.Hashtable
 import java.util.concurrent.ArrayBlockingQueue
@@ -67,7 +68,7 @@ object Networking {
     var contactViewModel: AddContactViewModel? = null
     private var json = Json { ignoreUnknownKeys = true }
     private var lastMessageId = Random.nextUInt()
-    private var registeredCallbacks = Hashtable<Pair<Long, Long>, MutableList<(String) -> Unit>>()
+    private var registeredCallbacks = Hashtable<Pair<Long, Long>, MutableList<(String, InputStream) -> Unit>>()
 
     private var userCreatedCallback : ((User) -> Unit)? = null
 
@@ -162,7 +163,7 @@ object Networking {
         this.userCreatedCallback = callback
     }
 
-    fun registerCallback(category : Long, type : Long, callback : (String) -> Unit) {
+    fun registerCallback(category : Long, type : Long, callback : (String, InputStream) -> Unit) {
         if (registeredCallbacks[Pair(category, type)] == null) {
             registeredCallbacks[Pair(category, type)] = mutableListOf(callback)
         } else {
@@ -226,9 +227,9 @@ object Networking {
          val con = withContext(Dispatchers.IO) {
             val selManager = SelectorManager(Dispatchers.IO)
             try {
-                socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50000)
+//                socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50000)
                 // This address should emulate the localhost address
-//                socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50000)
+                socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50000)
 //                        socket = aSocket(selManager).tcp().connect("192.168.178.53", port = 50000)
                 Log.i("Networking", "Connected to remote per TCP")
                 return@withContext true
@@ -325,7 +326,7 @@ object Networking {
                     // TODO: Clean this mess up
                     registeredCallbacks[Pair(header.Category.toLong(), header.Type.toLong())]?.let {
                         for(cal in it) {
-                            cal.invoke(sPacket)
+                            cal.invoke(sPacket, recChannel)
                         }
                     }
                 }
