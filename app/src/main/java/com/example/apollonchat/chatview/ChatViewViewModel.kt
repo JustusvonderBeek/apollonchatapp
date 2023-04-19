@@ -1,10 +1,12 @@
 package com.example.apollonchat.chatview
 
 import android.app.Application
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.example.apollonchat.R
 import com.example.apollonchat.database.contact.Contact
 import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.message.DisplayMessage
@@ -15,6 +17,7 @@ import com.example.apollonchat.networking.packets.Message
 import com.example.apollonchat.networking.Networking
 import io.ktor.util.date.*
 import kotlinx.coroutines.*
+import java.io.File
 import java.io.IOException
 
 class ChatViewViewModel(val contactID: Long, val contactDatabase: ContactDatabaseDao, val userDatabase : UserDatabaseDao, val messageDatabase : MessageDao, val application: Application) : ViewModel() {
@@ -40,13 +43,18 @@ class ChatViewViewModel(val contactID: Long, val contactDatabase: ContactDatabas
 
     val inputMessage = MutableLiveData<String>()
 
+    val userImage = MutableLiveData<String>()
+
     init {
-        Log.i("ChatViewViewModel", "Init")
+        Log.i("ChatViewViewModel", "Init for $contactID")
         _hideKeyboard.value = false
         loadMessages(contactID)
         uiScope.launch {
             loadUser()
         }
+        // TODO: Fix the path
+        userImage.value = File(application.applicationContext.filesDir, "$contactID.jpeg").absolutePath
+//        userImage.value = Uri.parse("android.resource://" + R.drawable.owl).path
     }
 
     fun sendMessage() {
@@ -167,5 +175,10 @@ class ChatViewViewModel(val contactID: Long, val contactDatabase: ContactDatabas
         if (user != null) {
             this._user = user
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        viewModelJob.cancel()
     }
 }

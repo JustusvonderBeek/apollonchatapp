@@ -66,7 +66,7 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
     }
 
     private fun registerAddContactCallback() {
-        Networking.registerCallback(PacketCategories.CONTACT.cat.toLong(), ContactType.CONTACTS.type.toLong()) {packet ->
+        Networking.registerCallback(PacketCategories.CONTACT.cat.toLong(), ContactType.CONTACTS.type.toLong()) { packet, _ ->
             Log.i("AddContactViewModel", "Executing contacts callback")
             val contacts = json.decodeFromString<ContactList>(packet)
             contacts.Contacts?.let {
