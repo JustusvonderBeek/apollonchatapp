@@ -5,5 +5,7 @@ enum class ContactType(val type : Int) {
     SEARCH(2),
     CONTACTS(3),
     OPTION(4),
-    LOGIN(5)
+    LOGIN(5),
+    CONTACT_INFO(6),
+    CONTACT_ACK(7)
 }
