@@ -8,6 +8,7 @@ import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.message.MessageDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
+import com.example.apollonchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
 import com.example.apollonchat.networking.certificate.ApollonNetworkConfigCreator
 import com.example.apollonchat.networking.packets.*
 import io.ktor.network.selector.*
@@ -50,6 +51,7 @@ object Networking {
     var outputChannel : Channel<ByteArray> = Channel(20)
 
     var socket : Socket? = null
+    var incomingChannel : InputStream? = null
     var connectSecure : Boolean = false
     var remoteAddress : InetAddress? = null
     var startLock : Mutex = Mutex(false)
@@ -155,6 +157,14 @@ object Networking {
         }
     }
 
+    suspend fun write(data : ByteArray) {
+        try {
+            outputChannel.send(data)
+        } catch(ex : IOException) {
+            ex.printStackTrace()
+        }
+    }
+
     fun registerContactViewModel(viewModel: AddContactViewModel) {
         this.contactViewModel = viewModel
     }
@@ -248,8 +258,8 @@ object Networking {
                 val selManager = SelectorManager(Dispatchers.IO)
                 val tlsConfig = ApollonNetworkConfigCreator.createTlsConfig(context.resources.openRawResource(R.raw.apollon))
                 // If the context is set as 'coroutineContext' then the method DOES NOT return back to the caller side!
-//                socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50001).tls(Dispatchers.IO, tlsConfig)
-                socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50001).tls(Dispatchers.IO, tlsConfig)
+                socket = aSocket(selManager).tcp().connect("homecloud.homeplex.org", port = 50001).tls(Dispatchers.IO, tlsConfig)
+//                socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50001).tls(Dispatchers.IO, tlsConfig)
 
                 Log.i("Networking", "Connected to remote per TLS")
                 return@withContext true
@@ -301,13 +311,16 @@ object Networking {
 
     private suspend fun startListening() {
         Log.i("Networking", "Starting to receive...")
+        incomingChannel = withContext(Dispatchers.IO) {
+            return@withContext socket!!.openReadChannel().toInputStream()
+        }
+        val recChannel = incomingChannel
         val con = withContext(Dispatchers.IO) {
             try {
-                val recChannel = socket!!.openReadChannel().toInputStream()
                 receiving = true
                 val sizeBuffer = ByteArray(2)
                 while(true) {
-                    var read = recChannel.read(sizeBuffer, 0, 2)
+                    var read = recChannel!!.read(sizeBuffer, 0, 2)
                     while(read < 2) {
                         recChannel.read(sizeBuffer, read, sizeBuffer.size - read)
                     }
@@ -324,11 +337,12 @@ object Networking {
                     Log.i("Networking", "Received cat: ${header.Category}, type: ${header.Type}")
 
                     // TODO: Clean this mess up
-                    registeredCallbacks[Pair(header.Category.toLong(), header.Type.toLong())]?.let {
-                        for(cal in it) {
-                            cal.invoke(sPacket, recChannel)
-                        }
-                    }
+                    ApollonProtocolHandler.ReceiveAny(packetBuffer)
+//                    registeredCallbacks[Pair(header.Category.toLong(), header.Type.toLong())]?.let {
+//                        for(cal in it) {
+//                            cal.invoke(sPacket, recChannel)
+//                        }
+//                    }
                 }
             } catch (ex : NullPointerException) {
                 Log.i("Networking", "Failed to get read channel for remote")
