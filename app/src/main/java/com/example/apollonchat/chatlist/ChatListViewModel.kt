@@ -11,6 +11,7 @@ import com.example.apollonchat.database.message.DisplayMessage
 import com.example.apollonchat.database.message.MessageDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
+import com.example.apollonchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
 import com.example.apollonchat.networking.Networking
 import com.example.apollonchat.networking.constants.ContactType
 import com.example.apollonchat.networking.constants.DataType
@@ -156,12 +157,15 @@ class ChatListViewModel(val contactDatabase : ContactDatabaseDao, val userDataba
                 Networking.initialize(InetAddress.getByName("10.0.2.2"), contactDatabase, userDatabase, messageDatabase, tls = false)
 //            Networking.initialize(InetAddress.getByName("homecloud.homeplex.org"), contactDatabase, userDatabase, messageDatabase, tls = true)
                 Networking.start(application.applicationContext)
+
                 // Login only makes sense if we send the correct UInt
                 if (_user.value != null) {
                     val userId = _user.value!!.userId.toUInt()
-                    val login = Login(userId)
-                    Log.i("ChatListViewModel", "Sending login $login")
-                    Networking.write(login)
+                    ApollonProtocolHandler.Initilize(userId.toInt(), application)
+
+//                    val login = Login(userId)
+//                    Log.i("ChatListViewModel", "Sending login $login")
+//                    Networking.write(login)
                 }
                 return@withContext
             } catch (ex : Exception) {
