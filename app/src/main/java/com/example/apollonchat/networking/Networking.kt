@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.example.apollonchat.R
 import com.example.apollonchat.addcontact.AddContactViewModel
+import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.message.MessageDao
 import com.example.apollonchat.database.user.User
@@ -30,12 +31,18 @@ import java.util.concurrent.BlockingQueue
 import kotlin.concurrent.thread
 import kotlin.random.Random
 import kotlin.random.nextUInt
+import kotlin.reflect.KSuspendFunction2
 
 object Networking {
 
-    /* This class contains the logic to send data to the server
+    /*
+    * This class contains the logic to send data to the server
     * and retrieve answers back from the server.
-    * It supports connection re-establishment and DNS resolution
+    * It supports connection re-establishment and DNS resolution.
+    * Features:
+    * + Independent sending and receiving
+    * + Injection of packet handling callbacks
+    * + Usage of both plain TCP and TCP/TLS connections
      */
 
     /* Relies on the ktor API to work */
@@ -51,7 +58,6 @@ object Networking {
     var outputChannel : Channel<ByteArray> = Channel(20)
 
     var socket : Socket? = null
-    var incomingChannel : InputStream? = null
     var connectSecure : Boolean = false
     var remoteAddress : InetAddress? = null
     var startLock : Mutex = Mutex(false)
@@ -71,6 +77,7 @@ object Networking {
     private var json = Json { ignoreUnknownKeys = true }
     private var lastMessageId = Random.nextUInt()
     private var registeredCallbacks = Hashtable<Pair<Long, Long>, MutableList<(String, InputStream) -> Unit>>()
+    private var defaultCallback = mutableListOf<KSuspendFunction2<ByteArray, InputStream, Unit>>()
 
     private var userCreatedCallback : ((User) -> Unit)? = null
 
@@ -181,6 +188,10 @@ object Networking {
         }
     }
 
+    fun registerCallback(callback: KSuspendFunction2<ByteArray, InputStream, Unit>) {
+        defaultCallback.add(callback)
+    }
+
     // Default arguments (TLS) need to be placed after non default ones in order to be used
     fun initialize(remote: InetAddress, contactDao : ContactDatabaseDao, userDao : UserDatabaseDao, messageDao : MessageDao, tls : Boolean = false) {
         if (!this.init) {
@@ -188,6 +199,14 @@ object Networking {
             if (userDatabase == null) userDatabase = userDao
             if (messageDatabase == null) messageDatabase = messageDao
             if (remoteAddress == null) remoteAddress = remote
+            connectSecure = tls
+            init = true
+        }
+    }
+
+    fun initialize(remote : InetAddress, tls : Boolean = false) {
+        // TODO: We don't any access to any database. Let the complete handling be done in another class and this one only be responsible for sending and receiving data.
+        if (!this.init) {
             connectSecure = tls
             init = true
         }
@@ -311,16 +330,13 @@ object Networking {
 
     private suspend fun startListening() {
         Log.i("Networking", "Starting to receive...")
-        incomingChannel = withContext(Dispatchers.IO) {
-            return@withContext socket!!.openReadChannel().toInputStream()
-        }
-        val recChannel = incomingChannel
         val con = withContext(Dispatchers.IO) {
             try {
+                val recChannel = socket!!.openReadChannel().toInputStream()
                 receiving = true
                 val sizeBuffer = ByteArray(2)
                 while(true) {
-                    var read = recChannel!!.read(sizeBuffer, 0, 2)
+                    var read = recChannel.read(sizeBuffer, 0, 2)
                     while(read < 2) {
                         recChannel.read(sizeBuffer, read, sizeBuffer.size - read)
                     }
@@ -337,7 +353,9 @@ object Networking {
                     Log.i("Networking", "Received cat: ${header.Category}, type: ${header.Type}")
 
                     // TODO: Clean this mess up
-                    ApollonProtocolHandler.ReceiveAny(packetBuffer)
+//                    ApollonProtocolHandler.ReceiveAny(packetBuffer, recChannel)
+                    ApollonProtocolHandler.ReceiveAny(packetBuffer, recChannel)
+//                    defaultCallback[0].invoke(packetBuffer, recChannel)
 //                    registeredCallbacks[Pair(header.Category.toLong(), header.Type.toLong())]?.let {
 //                        for(cal in it) {
 //                            cal.invoke(sPacket, recChannel)
@@ -345,7 +363,7 @@ object Networking {
 //                    }
                 }
             } catch (ex : NullPointerException) {
-                Log.i("Networking", "Failed to get read channel for remote")
+                Log.i("Networking", "Failed to get read channel for remote: ${ex.printStackTrace()}")
             } catch (ex : IOException) {
                 Log.i("Networking", "Failed to read from remote")
             }
