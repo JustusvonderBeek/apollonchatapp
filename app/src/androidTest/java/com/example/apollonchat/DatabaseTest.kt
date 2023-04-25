@@ -42,13 +42,13 @@ class DatabaseTest {
         val id = Random.nextLong()
         val contactName = "username123"
         val imagePath = "emptyPath.png"
-        val contact = Contact(id, contactName, imagePath, emptyList())
-        contactDatabaseDao.insert(contact)
+        val contact = Contact(id, contactName, imagePath, "last Message")
+        contactDatabaseDao.insertContact(contact)
         val queriedUser = contactDatabaseDao.getContact(contact.contactId)
         Assert.assertNotNull(queriedUser)
         if (queriedUser != null) {
             Assert.assertEquals(queriedUser.contactId, id)
-            Assert.assertEquals(queriedUser.messages.size, 0)
+            Assert.assertEquals(queriedUser.lastMessage, "last Message")
             Assert.assertEquals(queriedUser.contactName, contactName)
             Assert.assertEquals(queriedUser.contactImagePath, imagePath)
         }
@@ -63,9 +63,9 @@ class DatabaseTest {
         val messages = listOf<String>("Test", "test", "a")
         val contactList = mutableListOf<Contact>()
         for (i in 0..10) {
-            val contact = Contact(id + i, contactName, imagePath, messages)
+            val contact = Contact(id + i, contactName, imagePath, "last Message")
             contactList.add(contact)
-            contactDatabaseDao.insert(contact)
+            contactDatabaseDao.insertContact(contact)
         }
         val out = contactDatabaseDao.getAllContacts()
 //        out.observe(this, Observer {res ->
