@@ -1,7 +1,6 @@
 package com.example.apollonchat.networking.ApollonProtocolHandler
 
 import android.app.Application
-import android.hardware.biometrics.BiometricManager.Strings
 import android.icu.lang.UCharacter
 import android.util.Log
 import com.example.apollonchat.database.ApollonDatabase
@@ -12,8 +11,6 @@ import com.example.apollonchat.database.message.MessageDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
 import com.example.apollonchat.networking.Networking
-import com.example.apollonchat.networking.Networking.messageDatabase
-import com.example.apollonchat.networking.Networking.userDatabase
 import com.example.apollonchat.networking.constants.ContactType
 import com.example.apollonchat.networking.constants.DataType
 import com.example.apollonchat.networking.constants.PacketCategories
@@ -24,8 +21,6 @@ import com.example.apollonchat.networking.packets.Login
 import com.example.apollonchat.networking.packets.Message
 import com.example.apollonchat.networking.packets.NetworkOption
 import com.github.luben.zstd.Zstd
-import io.ktor.network.sockets.openReadChannel
-import io.ktor.utils.io.jvm.javaio.toInputStream
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -53,12 +48,11 @@ object ApollonProtocolHandler {
     private var user : User? = null
     private var messageDatabase : MessageDao? = null
     private var contactDatabase : ContactDatabaseDao? = null
-    private var incomingStream : InputStream? = null
 
     private var protocolJobs = Job()
     private var protocolScope = CoroutineScope(Dispatchers.Main + protocolJobs)
 
-    suspend fun ReceiveAny(packet : ByteArray) {
+    fun ReceiveAny(packet : ByteArray, incomingStream: InputStream) {
         val sPacket = packet.toString(Charsets.UTF_8)
         val header = json.decodeFromString<Header>(sPacket)
         when(header.Category.toLong()) {
@@ -72,7 +66,7 @@ object ApollonProtocolHandler {
                     }
                     ContactType.CONTACT_INFO.type.toLong() -> {
 //                        protocolScope.launch {
-                            ReceiveContactInformation(packet)
+                            ReceiveContactInformation(packet, incomingStream)
 //                        }
                     }
                     ContactType.CONTACT_ACK.type.toLong() -> {
@@ -123,19 +117,20 @@ object ApollonProtocolHandler {
         }
     }
 
-    private suspend fun ReceiveContactInformation(packet: ByteArray) {
+    private fun ReceiveContactInformation(packet: ByteArray, incomingStream: InputStream) {
         if (contactDatabase == null || messageDatabase == null) {
             throw IllegalStateException("Protocol Handler not initialized! Wrong usage!")
         }
-        withContext(Dispatchers.IO) {
+//        withContext(Dispatchers.IO) {
             Log.i("ApollonProtocolHandler", "Expecting Contact Information")
             val info = json.decodeFromString<ContactInfo>(packet.toString(Charsets.UTF_8))
             val imageLength = info.ImageBytes
             val imageBuffer = ByteArray(imageLength.toInt())
-            val read = Networking.incomingChannel!!.read(imageBuffer)
+            val read = incomingStream.read(imageBuffer)
             if (read < imageLength.toInt()) {
-                Log.i("ApollonProtocolHandler", "Failed to read all image bytes!")
-                return@withContext
+                Log.i("ApollonProtocolHandler", "Failed to read all image bytes! Got $read instead of $imageLength")
+//                return@withContext
+                return
             }
             Log.i("ApollonProtocolHandler", "Got $read bytes of image data")
             // Include the information how much compression is in packet
@@ -144,7 +139,7 @@ object ApollonProtocolHandler {
             val storageFile = File(application!!.applicationContext.filesDir, "${info.UserId}.${UCharacter.toLowerCase(info.ImageFormat)}")
             storageFile.writeBytes(decomImage)
             Log.i("ApollonProtocolHandler", "Stored contact ${info.UserId} picture under ${storageFile.absolutePath}")
-        }
+//        }
     }
 
     private suspend fun ReceiveTextMessage(packet : ByteArray) {
@@ -228,6 +223,7 @@ object ApollonProtocolHandler {
     // ---------------------------------------------------
 
     fun Initilize(userId : Int, application: Application) {
+        this.application = application
         val database = ApollonDatabase.getInstance(application)
         val userDatabase = database.userDao()
         protocolScope.launch {
@@ -237,13 +233,11 @@ object ApollonProtocolHandler {
         messageDatabase = database.messageDao()
         this.userId = userId
 
+//        Networking.registerCallback(this::ReceiveAny)
+
         protocolScope.launch {
             Login()
         }
-
-        // The following is VERY wild!!! Consider this a work-around and not a solution
-        // The Network Stream handled in the Networking class read in another class
-//        incomingStream = Networking.socket!!.openReadChannel().toInputStream()
     }
 
     fun SendText() {
