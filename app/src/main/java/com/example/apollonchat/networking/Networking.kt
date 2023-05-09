@@ -12,6 +12,7 @@ import io.ktor.network.tls.*
 import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import java.io.IOException
@@ -52,11 +53,11 @@ object Networking {
     // Expecting not more than 1 or 2 messages normally at the same time (exception images)
     private var outputChannel : Channel<ByteArray> = Channel(20)
     private var socket : Socket? = null
+    private val initBarrier : Semaphore = Semaphore(2, 2)
     private var sending : Thread? = null
     private var receiving : Thread? = null
     private var init : Boolean = false
     private var connected : Boolean = false
-    private var json = Json { ignoreUnknownKeys = true }
 
     private var networkingJob = Job()
     private val netScope = CoroutineScope(Dispatchers.Main + networkingJob)
@@ -67,7 +68,7 @@ object Networking {
     // Configuration
     private var remoteAddress : InetAddress? = null
     private var connectSecure : Boolean = false
-    private var headerSize : Int = 2
+    private var headerSize : Int = 10
 
     /*
     ----------------------------------------------------------------
@@ -160,6 +161,9 @@ object Networking {
                 socket = aSocket(selManager).tcp().connect(remoteAddress!!.hostAddress!!, port = 50000)
 //                        socket = aSocket(selManager).tcp().connect("192.168.178.53", port = 50000)
                 Log.i("Networking", "Connected to remote per TCP")
+                // TODO: Implement proper barrier instead of this Voudu shit
+                initBarrier.release()
+                initBarrier.release()
                 return@withContext true
             } catch (ex : IOException) {
                 Log.i("Networking", "Connection failed: $ex")
@@ -181,6 +185,8 @@ object Networking {
 //                socket = aSocket(selManager).tcp().connect("10.0.2.2", port = 50001).tls(Dispatchers.IO, tlsConfig)
 
                 Log.i("Networking", "Connected to remote per TLS")
+                initBarrier.release()
+                initBarrier.release()
                 return@withContext true
             } catch (ex : IOException) {
                 Log.i("Networking", "Failed to connect to remote per TLS! $ex")
@@ -213,6 +219,7 @@ object Networking {
             Log.i("Networking", "Already sending")
             return
         }
+        initBarrier.acquire()
         Log.i("Networking", "Starting to send...")
         val con = withContext(Dispatchers.IO) {
             try {
@@ -230,6 +237,7 @@ object Networking {
                 Log.i("Networking", "Failed to send to remote")
             }
         }
+        initBarrier.release()
         sending = null
     }
 
@@ -240,34 +248,21 @@ object Networking {
             Log.i("Networking", "Already receiving")
             return
         }
+        initBarrier.acquire()
         Log.i("Networking", "Starting to receive...")
         val con = withContext(Dispatchers.IO) {
             try {
                 val recChannel = socket!!.openReadChannel().toInputStream()
-//                val payloadReader = recChannel.bufferedReader(Charsets.UTF_8)
                 val headerBuffer = ByteArray(headerSize)
                 while(true) {
                     var read = recChannel.read(headerBuffer, 0, headerSize)
                     while(read < headerSize) {
-                        read = recChannel.read(headerBuffer, read, headerBuffer.size - read)
+                        read = recChannel.read(headerBuffer, read, headerSize - read)
                     }
 
-                    // Big endian
-//                    val size = sizeBuffer.toUInt16() - 2U
-//                    Log.i("Networking", "Size expected: $size - ${sizeBuffer.toHexString()} - ${sizeBuffer[1].toUByte()}")
-//                    val packetBuffer = ByteArray(size.toInt())
-//                    read = recChannel.read(packetBuffer)
-//                    val content = payloadReader.readLine()
-                    // Save the read data into a consumer queue for another thread to handle
-                    // Convert the packet to String and give to JSON to handle
-//                    val sPacket = packetBuffer.toString(Charsets.UTF_8)
-//                    val header = json.decodeFromString<Header>(content)
-//                     TODO: Decode
-//                    Log.i("Networking", "Received cat: ${header.Category}, type: ${header.Type}")
-
                     // TODO: Clean this mess up
-//                    ApollonProtocolHandler.ReceiveAny(packetBuffer, recChannel)
                     ApollonProtocolHandler.ReceiveAny(headerBuffer, recChannel)
+                    defaultCallback[0].invoke(headerBuffer, recChannel)
 //                    defaultCallback[0].invoke(packetBuffer, recChannel)
 //                    registeredCallbacks[Pair(header.Category.toLong(), header.Type.toLong())]?.let {
 //                        for(cal in it) {
@@ -281,6 +276,7 @@ object Networking {
                 Log.i("Networking", "Failed to read from remote")
             }
         }
+        initBarrier.release()
         this.receiving = null
     }
 
