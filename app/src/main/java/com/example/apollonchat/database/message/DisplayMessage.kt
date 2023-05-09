@@ -22,5 +22,5 @@ data class DisplayMessage(
         content: String,
         timestamp: String,
     ) : this(Random.nextLong(), messageId, contactId, own, content, timestamp)
-    fun toMessage(userId : UInt) : Message = Message(userId, this.messageId.toUInt(), this.contactId.toUInt(), this.timestamp, 0U, this.content)
+//    fun toMessage(userId : UInt) : Message = Message(userId, this.messageId.toUInt(), this.contactId.toUInt(), this.timestamp, 0U, this.content)
 }
