@@ -2,7 +2,7 @@ package com.example.apollonchat.configuration
 
 import java.net.InetAddress
 
-data class Configuration(
+data class NetworkConfiguration(
     var RemoteAddress : InetAddress,
     var SecureConnection : Boolean,
     var OverwriteDatabase : Boolean,
