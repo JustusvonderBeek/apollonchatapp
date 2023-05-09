@@ -6,18 +6,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ContactInfo(
-    var Category : Byte,
-    var Type : Byte,
-    var UserId : UInt,
-    var MessageId : UInt,
     var ContactIds : List<UInt>,
     var ImageBytes : UInt,
+    var Image : ByteArray,
     var ImageFormat : String
-) {
-    constructor(
-        UserId: UInt,
-        ContactIds: List<UInt>,
-        ImageBytes: UInt,
-        ImageFormat: String
-    ) : this(PacketCategories.CONTACT.cat.toByte(), ContactType.CONTACT_INFO.type.toByte(), UserId, 0u, ContactIds, ImageBytes, ImageFormat)
-}
+)
