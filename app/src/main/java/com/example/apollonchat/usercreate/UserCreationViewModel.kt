@@ -75,13 +75,14 @@ class UserCreationViewModel(val userDatabase : UserDatabaseDao, val application:
         _clickable.value = false
     }
 
+    // TODO: Move to protocol handler and remove this
     private suspend fun registerUserCreationCallback() {
         Networking.registerCallback(PacketCategories.CONTACT.cat.toLong(), ContactType.CREATE.type.toLong()) { packet, _ ->
             uiScope.launch {
                 val createAnswer = json.decodeFromString<Create>(packet)
-                val newUser = User(createAnswer.UserId.toLong(), createAnswer.Username, userImage = "drawable/usericon.png")
-                userCreated(newUser)
-                Log.i("UserCreationViewModel", "Wrote user into database")
+//                val newUser = User(createAnswer.UserId.toLong(), createAnswer.Username, userImage = "drawable/usericon.png")
+//                userCreated(newUser)
+//                Log.i("UserCreationViewModel", "Wrote user into database")
                 _navigateUserListEvent.value = true
             }
         }
@@ -110,7 +111,7 @@ class UserCreationViewModel(val userDatabase : UserDatabaseDao, val application:
             // Expecting the network to be already started
 //            Networking.start(InetAddress.getLocalHost(), cDatabase, database, null)
             val create = Create(Username = newUser.username)
-            Networking.write(create)
+//            Networking.write(create)
         }
     }
 
