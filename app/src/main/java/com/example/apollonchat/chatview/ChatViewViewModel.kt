@@ -70,14 +70,14 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
             if (_messages.value != null) {
                 messageId = _messages.value!!.size + 1
             }
-            val netMessage = Message(UserId = nUserId, MessageId = messageId.toUInt(), ContactUserId = contactID.toUInt(), Timestamp = getTimeMillis().toString(), Part = 0U, Message = message)
+//            val netMessage = Message(UserId = nUserId, MessageId = messageId.toUInt(), ContactUserId = contactID.toUInt(), Timestamp = getTimeMillis().toString(), Part = 0U, Message = message)
             uiScope.launch {
-                Networking.write(netMessage)
+//                Networking.write(netMessage)
             }
 
-            val displayMessage = netMessage.toDisplayMessage(nUserId.toLong())
+//            val displayMessage = netMessage.toDisplayMessage(nUserId.toLong())
             uiScope.launch {
-                insertMessage(displayMessage)
+//                insertMessage(displayMessage)
             }
 
             // Adding the last message to the contact to show in the list preview
