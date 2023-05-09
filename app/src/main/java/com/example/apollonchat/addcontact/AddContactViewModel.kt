@@ -77,6 +77,7 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
         }
     }
 
+    // TODO: Fix the search and move to protocol handler
     fun searchContacts() {
         if (contactName.value != "") {
             // Creating a search user packet with the current name and send to server
@@ -84,19 +85,19 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
             if (_user != null) {
                 id = _user!!.userId
             }
-            val search = Search(id.toUInt(), Random.nextUInt(), contactName.value!!)
-            Log.i("AddContactViewModel", "Search: $search")
+//            val search = Search(id.toUInt(), Random.nextUInt(), contactName.value!!)
+//            Log.i("AddContactViewModel", "Search: $search")
             // Should make sure that the start thingy was already called
-            uiScope.launch {
-                writeSearchPacket(search)
-            }
+//            uiScope.launch {
+//                writeSearchPacket(search)
+//            }
             _hideKeyboard.value = true
         }
     }
 
     private suspend fun writeSearchPacket(search: Search) {
         withContext(Dispatchers.IO) {
-            Networking.write(search)
+//            Networking.write(search)
         }
     }
 
@@ -156,6 +157,7 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
         }
     }
 
+    // TODO: Move to protocol handler
     private suspend fun sendContactRequestToServer(contact: Contact) {
         withContext(Dispatchers.IO) {
             var userId = 1U
@@ -163,8 +165,8 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
                userId = _user!!.userId.toUInt()
             }
             val options = listOf(NetworkOption("Question", "Add"))
-            val addOption = ContactOption(userId, contact.contactId.toUInt(), options)
-            Networking.write(addOption)
+//            val addOption = ContactOption(userId, contact.contactId.toUInt(), options)
+//            Networking.write(addOption)
         }
     }
 
