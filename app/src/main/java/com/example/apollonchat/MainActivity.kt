@@ -2,15 +2,18 @@ package com.example.apollonchat
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import androidx.appcompat.widget.Toolbar
 import androidx.databinding.DataBindingUtil
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.NavigationUI
-import com.example.apollonchat.configuration.Configuration
+import com.example.apollonchat.configuration.NetworkConfiguration
 import com.example.apollonchat.databinding.ActivityMainBinding
+import com.example.apollonchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
 import com.example.apollonchat.networking.Networking
-import com.google.android.material.appbar.AppBarLayout
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -30,8 +33,10 @@ class MainActivity : AppCompatActivity() {
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration)
 
         // Starting the networking service here since it will be used throughout the whole app
-        val debugConfiguration = Configuration()
-        Networking.initialize(debugConfiguration.RemoteAddress, debugConfiguration.SecureConnection)
+        val networkConfig = Networking.Configuration()
+        Networking.initialize(networkConfig)
+        Networking.start(applicationContext)
+        ApollonProtocolHandler.Initilize(1234567u, application)
     }
 
     override fun onSupportNavigateUp(): Boolean {
