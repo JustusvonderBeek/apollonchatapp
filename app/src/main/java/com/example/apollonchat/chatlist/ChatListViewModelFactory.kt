@@ -7,11 +7,11 @@ import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.message.MessageDao
 import com.example.apollonchat.database.user.UserDatabaseDao
 
-class ChatListViewModelFactory(val contactDao : ContactDatabaseDao, val userDao : UserDatabaseDao, val messageDao: MessageDao,  val application : Application) : ViewModelProvider.Factory {
+class ChatListViewModelFactory(val application : Application) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ChatListViewModel::class.java)) {
-            return ChatListViewModel(contactDao, userDao, messageDao, application) as T
+            return ChatListViewModel(application) as T
         }
         throw IllegalArgumentException("Unknown class")
     }
