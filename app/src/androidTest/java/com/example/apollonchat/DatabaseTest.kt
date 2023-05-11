@@ -8,6 +8,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.contact.Contact
+import com.example.apollonchat.database.message.DisplayMessage
 import org.junit.After
 import org.junit.Assert
 import org.junit.Before
@@ -74,6 +75,22 @@ class DatabaseTest {
 //                Assert.assertNotEquals(res.size, 0)
 //            }
 //        })
+    }
+
+    @Test
+    fun testMessageDatabase() {
+        val dMessage = DisplayMessage(12345, 54321, false, "Message", "Now")
+
+        val messageDao = db.messageDao()
+        messageDao.insertMessage(dMessage)
+        var messages = messageDao.getMessages(54321)
+
+        Assert.assertNotNull(messages)
+        Assert.assertEquals(1, messages!!.size)
+        messageDao.clearMessages()
+        messages = messageDao.getMessages(54321)
+        Assert.assertNotNull(messages)
+        Assert.assertEquals(0, messages!!.size)
     }
 
 }
