@@ -52,14 +52,6 @@
                     android:layout_weight="1"
                     android:text="Last online: 14.03" />
             </LinearLayout>
-
-            <Button
-                android:id="@+id/addContact"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Add Contact" />
-
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
