@@ -8,6 +8,7 @@ import com.example.apollonchat.database.contact.Contact
 import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
+import com.example.apollonchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
 import com.example.apollonchat.networking.Networking
 import com.example.apollonchat.networking.constants.ContactType
 import com.example.apollonchat.networking.constants.PacketCategories
@@ -55,9 +56,7 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
         uiScope.launch {
             loadUser()
         }
-        uiScope.launch {
-            registerAddContactCallback()
-        }
+        registerAddContactCallback()
         contactName.value = ""
         _navigateToContactListEvent.value = false
         _contacts.value = mutableListOf()
@@ -66,9 +65,9 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
     }
 
     private fun registerAddContactCallback() {
-        Networking.registerCallback(PacketCategories.CONTACT.cat.toLong(), ContactType.CONTACTS.type.toLong()) { packet, _ ->
+        ApollonProtocolHandler.registerContactsCallback { payload ->
             Log.i("AddContactViewModel", "Executing contacts callback")
-            val contacts = json.decodeFromString<ContactList>(packet)
+            val contacts = json.decodeFromString<ContactList>(payload)
             contacts.Contacts?.let {
                 uiScope.launch {
                     showContacts(it)
