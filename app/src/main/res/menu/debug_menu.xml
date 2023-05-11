@@ -17,4 +17,7 @@
     <item
         android:id="@+id/reconnectNetworkAction"
         android:title="Reconnect Network" />
+    <item
+        android:id="@+id/addUserAction"
+        android:title="Add a new User" />
 </menu>
