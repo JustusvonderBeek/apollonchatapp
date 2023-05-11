@@ -13,6 +13,7 @@ import androidx.navigation.fragment.findNavController
 import com.example.apollonchat.R
 import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.databinding.FragmentChatListBinding
+import com.example.apollonchat.networking.Networking
 
 class ChatListFragment : Fragment(), MenuProvider {
     private lateinit var viewModel : ChatListViewModel
@@ -43,8 +44,13 @@ class ChatListFragment : Fragment(), MenuProvider {
             }
             R.id.reconnectNetworkAction -> {
                 Log.i("ChatListFragment", "Reconnecting the Network")
+                viewModel.reconnectNetwork()
                 return true
             }
+            R.id.addUserAction -> {
+                this.findNavController().navigate(ChatListFragmentDirections.actionNavigationChatListToAddContactFragment())
+            }
+            // Remove the button from the main UI
         }
         return false
     }
@@ -61,15 +67,13 @@ class ChatListFragment : Fragment(), MenuProvider {
 
         // Getting all database DAOs and bring them into the networking and start it
         val application = requireNotNull(this.activity).application
-        val contactDao = ApollonDatabase.getInstance(application).contactDao()
-        val userDao = ApollonDatabase.getInstance(application).userDao()
-        val messageDao = ApollonDatabase.getInstance(application).messageDao()
 
-        viewModelFactory = ChatListViewModelFactory(contactDao, userDao, messageDao, application)
+        viewModelFactory = ChatListViewModelFactory(application)
         viewModel = ViewModelProvider(requireActivity(), viewModelFactory)[ChatListViewModel::class.java]
         binding.chatListViewModel = viewModel
         binding.lifecycleOwner = requireActivity()
 
+        // Move to the view that shows the chat with the clicked user
         val adapter = ChatUserItemAdapter(ChatUserItemAdapter.ChatUserItemListener { contactId ->
             Log.i("ChatListFragment", "Got user $contactId")
             viewModel.onContactClicked(contactId)
@@ -83,7 +87,8 @@ class ChatListFragment : Fragment(), MenuProvider {
             }
         })
 
-        // Problems with automatically added users pointing to wrong ID and wrong chat
+        // Problems with updating the list when new user is added
+        // Maybe need to add another visual representation of
         viewModel.contacts.observe(viewLifecycleOwner, Observer {
             it?.let {
                 adapter.submitList(it)
@@ -101,12 +106,6 @@ class ChatListFragment : Fragment(), MenuProvider {
                 }
             }
         })
-
-        binding.addContact.setOnClickListener{
-            // Navigating to the add Contact screen and allow the user to add a new contact
-//            viewModel.clearUser()
-            this.findNavController().navigate(ChatListFragmentDirections.actionNavigationChatListToAddContactFragment())
-        }
 
         return binding.root
     }
