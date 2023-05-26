@@ -9,6 +9,11 @@ import com.example.apollonchat.networking.constants.DataType
 import com.example.apollonchat.networking.constants.PacketCategories
 import com.example.apollonchat.networking.packets.Header
 import com.example.apollonchat.networking.packets.Message
+import com.google.android.material.snackbar.BaseTransientBottomBar.Duration
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.After
@@ -18,8 +23,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.io.IOException
-import java.nio.ByteBuffer
-import java.util.stream.Stream
 import kotlin.random.Random
 import kotlin.random.nextUInt
 
@@ -97,7 +100,7 @@ class ProtocolTest {
         outStream.write(stringMessage)
         outStream.flush()
 
-        ApollonProtocolHandler.ReceiveAny(rawHeader, tmpFile.inputStream())
+        ApollonProtocolHandler.receiveAny(rawHeader, tmpFile.inputStream())
 
         // Wait for database to finish writing data into it (100ms should be enough for most)
         Thread.sleep(100)
@@ -122,7 +125,7 @@ class ProtocolTest {
         outStream.flush()
         rawHeader = increaseMessageId(rawHeader, 1)
 
-        ApollonProtocolHandler.ReceiveAny(rawHeader, tmpFile.inputStream())
+        ApollonProtocolHandler.receiveAny(rawHeader, tmpFile.inputStream())
 
         Thread.sleep(100)
 
@@ -139,7 +142,80 @@ class ProtocolTest {
 
     @Test
     fun testWrongTextInput() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val messageDao = ApollonDatabase.getInstance(context).messageDao()
+        messageDao.clearMessages()
 
+        ApollonProtocolHandler.initialize(userId, context.applicationContext)
+
+        var pair = createTextMessage(text = "empty")
+        var raw = convertTextToRaw(pair)
+        var rawHeader = raw.first
+        val textMessageJson = "{\"contactuserid\":0,\"timestamp\":\"12:00\",\"message\":\"test\"}\n"
+        var rawText = textMessageJson.toByteArray(Charsets.UTF_8)
+
+        var tmpFile = File(context.filesDir, "protocolTest.txt")
+        tmpFile.deleteOnExit()
+        // Writing the data into the file so that the method can work with it
+        var outStream = tmpFile.outputStream()
+        outStream.write(rawText)
+        outStream.flush()
+
+        ApollonProtocolHandler.receiveAny(rawHeader, tmpFile.inputStream())
+
+        // Wait for database to finish writing data into it (100ms should be enough for most)
+        Thread.sleep(100)
+        var messages = messageDao.getMessages(0L)
+
+        Assert.assertNotNull(messages)
+        Assert.assertEquals(0, messages!!.size)
+    }
+
+    @Test
+    fun testTextTimeout() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val messageDao = ApollonDatabase.getInstance(context).messageDao()
+        messageDao.clearMessages()
+
+        ApollonProtocolHandler.initialize(userId, context.applicationContext)
+
+        var pair = createTextMessage(text = "empty")
+        var raw = convertTextToRaw(pair)
+        var rawHeader = raw.first
+        val timeoutJsonText = "{\"ContactUserId\":0,\"Timestamp\":\"12:00\",\"Message\":\"test\""
+        val rawWrong = timeoutJsonText.toByteArray(Charsets.UTF_8)
+
+        var tmpFile = File(context.filesDir, "protocolTest.txt")
+        tmpFile.deleteOnExit()
+        // Writing the data into the file so that the method can work with it
+        var outStream = tmpFile.outputStream()
+        outStream.write(rawWrong)
+        outStream.flush()
+
+        // TODO: Fix this not timeouting
+        ApollonProtocolHandler.receiveAny(rawHeader, tmpFile.inputStream())
+
+        Thread.sleep(1000)
+        val messages = messageDao.getMessages(0L)
+
+        Assert.assertNotNull(messages)
+        Assert.assertEquals(0, messages!!.size)
+
+        // TODO: Fix reading in all text!
+        Assert.fail()
+    }
+
+    @Test
+    fun testSendingMessage() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val messageDao = ApollonDatabase.getInstance(context).messageDao()
+        messageDao.clearMessages()
+
+        ApollonProtocolHandler.initialize(userId, context.applicationContext)
+
+        ApollonProtocolHandler.SendText("test", 12345u)
+
+        Thread.sleep(100)
     }
 
 }
