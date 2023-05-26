@@ -5,7 +5,6 @@ import android.util.Log
 import com.example.apollonchat.R
 import com.example.apollonchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
 import com.example.apollonchat.networking.certificate.ApollonNetworkConfigCreator
-import com.example.apollonchat.networking.packets.*
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.network.tls.*
@@ -13,8 +12,6 @@ import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.sync.Semaphore
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.io.InputStream
 import java.net.InetAddress
@@ -29,6 +26,7 @@ object Networking {
         var headerSize : Int,
         var secure : Boolean,
     ) {
+//        constructor() : this(InetAddress.getByName("178.1.205.20"), 10, true)
         constructor() : this(InetAddress.getByName("10.0.2.2"), 10, false)
     }
 
@@ -261,8 +259,9 @@ object Networking {
                     }
 
                     // TODO: Clean this mess up
-                    ApollonProtocolHandler.ReceiveAny(headerBuffer, recChannel)
-                    defaultCallback[0].invoke(headerBuffer, recChannel)
+                    // Either this one line or the callback. Check what is faster
+                    ApollonProtocolHandler.receiveAny(headerBuffer, recChannel)
+//                    defaultCallback[0].invoke(headerBuffer, recChannel)
 //                    defaultCallback[0].invoke(packetBuffer, recChannel)
 //                    registeredCallbacks[Pair(header.Category.toLong(), header.Type.toLong())]?.let {
 //                        for(cal in it) {
