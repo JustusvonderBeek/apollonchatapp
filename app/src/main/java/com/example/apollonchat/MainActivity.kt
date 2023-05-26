@@ -36,7 +36,7 @@ class MainActivity : AppCompatActivity() {
         val networkConfig = Networking.Configuration()
         Networking.initialize(networkConfig)
         Networking.start(applicationContext)
-        ApollonProtocolHandler.initialize(1234567u, application)
+        ApollonProtocolHandler.initialize(4227087116u, application)
     }
 
     override fun onSupportNavigateUp(): Boolean {
