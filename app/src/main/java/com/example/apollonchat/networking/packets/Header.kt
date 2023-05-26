@@ -28,8 +28,16 @@ data class Header(
             if (raw.size != 10) {
                 return null
             }
-            val userId = (raw[2].toInt() and 0xff shl 24) or (raw[3].toInt() and 0xff shl 16) or (raw[4].toInt() and 0xff shl 8) or (raw[5].toInt() and 0xff)
-            val messageId = (raw[6].toInt() and 0xff shl 24) or (raw[7].toInt() and 0xff shl 16) or (raw[8].toInt() and 0xff shl 8) or (raw[9].toInt() and 0xff)
+            val userId =
+                (raw[2].toInt() and 0xff shl 24) or
+                (raw[3].toInt() and 0xff shl 16) or
+                (raw[4].toInt() and 0xff shl 8) or
+                (raw[5].toInt() and 0xff)
+            val messageId =
+                (raw[6].toInt() and 0xff shl 24) or
+                (raw[7].toInt() and 0xff shl 16) or
+                (raw[8].toInt() and 0xff shl 8) or
+                (raw[9].toInt() and 0xff)
             val header = Header(raw[0], raw[1], userId.toUInt(), messageId.toUInt())
             return header
         }
