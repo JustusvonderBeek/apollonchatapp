@@ -13,6 +13,7 @@ import com.example.apollonchat.database.message.DisplayMessage
 import com.example.apollonchat.database.message.MessageDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
+import com.example.apollonchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
 import com.example.apollonchat.networking.packets.Message
 import com.example.apollonchat.networking.Networking
 import io.ktor.util.date.*
@@ -61,45 +62,7 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
         if (message != null && !message.contentEquals("")) {
             Log.i("ChatViewViewModel", "Message != null")
 
-            var nUserId = 12345U
-            if (_user != null) {
-//                userId = _user!!.userId.toUInt()
-                nUserId = userId.toUInt()
-            }
-            var messageId = 0
-            if (_messages.value != null) {
-                messageId = _messages.value!!.size + 1
-            }
-//            val netMessage = Message(UserId = nUserId, MessageId = messageId.toUInt(), ContactUserId = contactID.toUInt(), Timestamp = getTimeMillis().toString(), Part = 0U, Message = message)
-            uiScope.launch {
-//                Networking.write(netMessage)
-            }
-
-//            val displayMessage = netMessage.toDisplayMessage(nUserId.toLong())
-            uiScope.launch {
-//                insertMessage(displayMessage)
-            }
-
-            // Adding the last message to the contact to show in the list preview
-            uiScope.launch {
-                updateLastMessage(message!!)
-            }
-
-//            _messages.value!!.add(displayMessage)
-
-
-            // TODO: Fix the ID generation, obtaining correct one
-//            val displayMessage = DisplayMessage(Random.nextInt(), own = true, content = message, timestamp = "")
-//            _localMessages.add(displayMessage)
-//            _messages.value = _localMessages
-//            _messages.value?.add(message)
-
-            // Making message persistent
-            if (_contact.value != null) {
-                Log.i("ChatViewViewModel", "Adding new message to contact")
-//                _contact.value!!.messages.add(message)
-//                updateContact(_contact.value!!)
-            }
+            ApollonProtocolHandler.SendText(message, contactID.toUInt())
 
             // Clearing input and hiding keyboard
             _hideKeyboard.value = true
