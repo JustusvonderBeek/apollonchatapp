@@ -57,7 +57,6 @@ class UserCreationFragment : Fragment(), MenuProvider {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_user_creation, container, false)
 
         val application = requireNotNull(this.activity).application
-        val navigation = findNavController()
         val dataSource = ApollonDatabase.getInstance(application).userDao()
 
         viewModelFactory = UserCreationViewModelFactory(dataSource, application)
