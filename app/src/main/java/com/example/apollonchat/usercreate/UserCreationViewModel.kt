@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
+import com.example.apollonchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
 import com.example.apollonchat.networking.packets.Create
 import com.example.apollonchat.networking.Networking
 import com.example.apollonchat.networking.constants.ContactType
@@ -49,15 +50,10 @@ class UserCreationViewModel(val userDatabase : UserDatabaseDao, val application:
     val navigateUserListEvent : LiveData<Boolean>
         get() = _navigateUserListEvent
 
-    private var json = Json { ignoreUnknownKeys = true }
-
     init {
         userImage.value = "@drawable/usericon.png"
         _navigateUserListEvent.value = false
         _clickable.value = true
-        uiScope.launch {
-            registerUserCreationCallback()
-        }
     }
 
     // This method creates a user with the given values from the UI and stores it into the database
@@ -67,52 +63,10 @@ class UserCreationViewModel(val userDatabase : UserDatabaseDao, val application:
         Log.i("UserCreationViewModel", "Creating a new user: $newUser")
 
         // First we need to obtain the ID from the server
-        uiScope.launch {
-            writeNewUserToServer(newUser)
-        }
+        ApollonProtocolHandler.SendCreateAccount(newUser)
         // Expecting the Network to signal the answer
         // Therefore disabling the creation button
         _clickable.value = false
-    }
-
-    // TODO: Move to protocol handler and remove this
-    private suspend fun registerUserCreationCallback() {
-        Networking.registerCallback(PacketCategories.CONTACT.cat.toLong(), ContactType.CREATE.type.toLong()) { packet, _ ->
-            uiScope.launch {
-                val createAnswer = json.decodeFromString<Create>(packet)
-//                val newUser = User(createAnswer.UserId.toLong(), createAnswer.Username, userImage = "drawable/usericon.png")
-//                userCreated(newUser)
-//                Log.i("UserCreationViewModel", "Wrote user into database")
-                _navigateUserListEvent.value = true
-            }
-        }
-    }
-
-    private suspend fun userCreated(user : User) {
-        withContext(Dispatchers.IO) {
-            insertNewUserToDatabase(user)
-        }
-        // The variables must be set on the main thread
-        withContext(Dispatchers.Main) {
-            _navigateUserListEvent.value = true
-        }
-    }
-
-    private suspend fun insertNewUserToDatabase(newUser : User) {
-        withContext(Dispatchers.IO) {
-            userDatabase.clearUser()
-            userDatabase.insertUser(newUser)
-        }
-    }
-
-    private suspend fun writeNewUserToServer(newUser: User) {
-        Log.i("UserCreationViewModel", "Writing new user to server")
-        withContext(Dispatchers.IO) {
-            // Expecting the network to be already started
-//            Networking.start(InetAddress.getLocalHost(), cDatabase, database, null)
-            val create = Create(Username = newUser.username)
-//            Networking.write(create)
-        }
     }
 
     fun reconnectNetwork() {
