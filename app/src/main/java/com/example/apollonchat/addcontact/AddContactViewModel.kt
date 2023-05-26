@@ -20,7 +20,9 @@ import java.net.InetAddress
 import kotlin.random.Random
 import kotlin.random.nextUInt
 
-class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : ContactDatabaseDao) : ViewModel() {
+
+// TODO: FIX this class
+class AddContactViewModel(val userDatabase : UserDatabaseDao, val contactDatabase : ContactDatabaseDao) : ViewModel() {
 
     // Suspend functions
     private var viewModelJob = Job()
@@ -47,27 +49,20 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
 
     val contactName = MutableLiveData<String>()
 
-    private var _user : User? = null
-
-    private var json = Json { ignoreUnknownKeys = true }
-
     init {
-        Log.i("AddContactViewModel", "Add Contact VM created")
-        uiScope.launch {
-            loadUser()
-        }
+//        Log.i("AddContactViewModel", "Add Contact ViewModel created")
         registerAddContactCallback()
         contactName.value = ""
         _navigateToContactListEvent.value = false
         _contacts.value = mutableListOf()
         _hideKeyboard.value = false
-//        Networking.registerContactViewModel(this)
     }
 
     private fun registerAddContactCallback() {
         ApollonProtocolHandler.registerContactsCallback { payload ->
             Log.i("AddContactViewModel", "Executing contacts callback")
-            val contacts = json.decodeFromString<ContactList>(payload)
+            // Only accept correct JSON, not some other or missing fields
+            val contacts = Json.decodeFromString<ContactList>(payload)
             contacts.Contacts?.let {
                 uiScope.launch {
                     showContacts(it)
@@ -79,24 +74,8 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
     // TODO: Fix the search and move to protocol handler
     fun searchContacts() {
         if (contactName.value != "") {
-            // Creating a search user packet with the current name and send to server
-            var id = 1234L
-            if (_user != null) {
-                id = _user!!.userId
-            }
-//            val search = Search(id.toUInt(), Random.nextUInt(), contactName.value!!)
-//            Log.i("AddContactViewModel", "Search: $search")
-            // Should make sure that the start thingy was already called
-//            uiScope.launch {
-//                writeSearchPacket(search)
-//            }
+            ApollonProtocolHandler.SendSearch(contactName.value!!)
             _hideKeyboard.value = true
-        }
-    }
-
-    private suspend fun writeSearchPacket(search: Search) {
-        withContext(Dispatchers.IO) {
-//            Networking.write(search)
         }
     }
 
@@ -145,7 +124,7 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
         withContext(Dispatchers.IO) {
             try {
 //                database.clearContacts()
-                database.insertContact(contact)
+                contactDatabase.insertContact(contact)
             } catch (ex : java.lang.Exception) {
                 Log.i("AddContactViewModel", "Failed to insert contact into database:\n$ex")
             }
@@ -159,22 +138,7 @@ class AddContactViewModel(val uDatabase : UserDatabaseDao, val database : Contac
     // TODO: Move to protocol handler
     private suspend fun sendContactRequestToServer(contact: Contact) {
         withContext(Dispatchers.IO) {
-            var userId = 1U
-            if (_user != null) {
-               userId = _user!!.userId.toUInt()
-            }
-            val options = listOf(NetworkOption("Question", "Add"))
-//            val addOption = ContactOption(userId, contact.contactId.toUInt(), options)
-//            Networking.write(addOption)
-        }
-    }
-
-    private suspend fun loadUser() {
-        val user = withContext(Dispatchers.IO) {
-            return@withContext uDatabase.getUser()
-        }
-        if (user != null) {
-            _user = user
+            ApollonProtocolHandler.SendContactRequest(contact.contactId.toUInt())
         }
     }
 
