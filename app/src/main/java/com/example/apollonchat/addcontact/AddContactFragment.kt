@@ -44,6 +44,7 @@ class AddContactFragment : Fragment() {
         viewModel = ViewModelProvider(requireActivity(), viewModelFactory)[AddContactViewModel::class.java]
 
         binding.addConctactViewModel = viewModel
+        // Destroy the fragment after navigating back to the main screen
         binding.lifecycleOwner = this
 
         val adapter = ChatUserItemAdapter(ChatUserItemAdapter.ChatUserItemListener { contactId ->
@@ -53,7 +54,7 @@ class AddContactFragment : Fragment() {
         binding.contactList.adapter = adapter
 
         binding.searchContactButton.setOnClickListener {
-            // Issueing a request to the server and displaying the users
+            // Issuing a request to the server and displaying the users
             viewModel.searchContacts()
         }
 
