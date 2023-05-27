@@ -92,6 +92,8 @@ object ApollonProtocolHandler {
         protocolScope.launch {
             Login()
         }
+
+        Log.i("ApollonProtocolHandler", "Initialized Protocol Handler with ID $userId")
     }
 
     private fun readFullLine(incoming : InputStream, timeout : Long) : String? {
