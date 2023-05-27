@@ -7,6 +7,7 @@ import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.NavigationUI
 import com.example.apollonchat.configuration.NetworkConfiguration
+import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.databinding.ActivityMainBinding
 import com.example.apollonchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
 import com.example.apollonchat.networking.Networking
@@ -14,10 +15,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding : ActivityMainBinding
+
+    private var job = Job()
+    private var mainScope = CoroutineScope(Dispatchers.Main + job)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,7 +42,22 @@ class MainActivity : AppCompatActivity() {
         val networkConfig = Networking.Configuration()
         Networking.initialize(networkConfig)
         Networking.start(applicationContext)
-        ApollonProtocolHandler.initialize(4227087116u, application)
+        // TODO: Loading the newly created user
+        val userId = runBlocking {
+            loadUser()
+        }
+        ApollonProtocolHandler.initialize(userId, application)
+    }
+
+    private suspend fun loadUser() : UInt {
+        val userDB = ApollonDatabase.getInstance(this.application).userDao()
+        var userId = 0u
+        withContext(Dispatchers.IO) {
+            val user = userDB.getUser()
+            if (user != null)
+                userId = user.userId.toUInt()
+        }
+        return userId
     }
 
     override fun onSupportNavigateUp(): Boolean {
