@@ -3,6 +3,8 @@ package com.example.apollonchat.chatlist
 import android.os.Bundle
 import android.util.Log
 import android.view.*
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
 import androidx.core.view.MenuProvider
 import androidx.databinding.DataBindingUtil
@@ -10,6 +12,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
+import androidx.viewbinding.ViewBindings
 import com.example.apollonchat.R
 import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.databinding.FragmentChatListBinding
@@ -72,6 +75,11 @@ class ChatListFragment : Fragment(), MenuProvider {
         viewModel = ViewModelProvider(requireActivity(), viewModelFactory)[ChatListViewModel::class.java]
         binding.chatListViewModel = viewModel
         binding.lifecycleOwner = requireActivity()
+
+        (requireActivity() as AppCompatActivity).supportActionBar?.title = "Chats"
+        (requireActivity() as AppCompatActivity).supportActionBar?.subtitle = ""
+//        (requireActivity() as AppCompatActivity).addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
+
 
         // Move to the view that shows the chat with the clicked user
         val adapter = ChatUserItemAdapter(ChatUserItemAdapter.ChatUserItemListener { contactId ->
