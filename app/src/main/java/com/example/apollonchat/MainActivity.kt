@@ -29,6 +29,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
+        setSupportActionBar(binding.mainActionBar)
 
         // This does only work when the Navigation component is inside a <fragment> tag, NOTHING ELSE!
         val navController = findNavController(R.id.navHostFragment)
