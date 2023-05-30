@@ -9,21 +9,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
-import android.widget.ImageView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.navArgs
-import androidx.viewbinding.ViewBindings
 import com.example.apollonchat.R
-import com.example.apollonchat.chatlist.ChatListViewModel
-import com.example.apollonchat.chatlist.ChatListViewModelFactory
-import com.example.apollonchat.chatlist.ChatUserItemAdapter
-import com.example.apollonchat.chatview.ChatViewViewModel
-import com.example.apollonchat.chatview.ChatViewViewModelFactory
 import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.databinding.FragmentChatViewBinding
+import androidx.appcompat.widget.Toolbar
 class ChatViewFragment : Fragment() {
     private lateinit var viewModel : ChatViewViewModel
     private lateinit var viewModelFactory : ChatViewViewModelFactory
@@ -86,16 +81,28 @@ class ChatViewFragment : Fragment() {
                         var scaledImage = Bitmap.createScaledBitmap(image, 60, 60, true)
                         image = scaledImage
                     }
-                    binding.userImage.setImageBitmap(image)
+//                    binding.chatViewToolbarImage.setImageBitmap(image)
 //                 binding.userImage.setImageResource(R.drawable.owl)
                 } catch (ex : Exception) {
                     Log.i("ChatViewFragment", "Failed to load image from $path: $ex")
-                    binding.userImage.setImageResource(R.drawable.usericon)
+//                    binding.chatViewToolbarImage.setImageResource(R.drawable.usericon)
                 }
             } else {
-                binding.userImage.setImageResource(R.drawable.usericon)
+//                binding.chatViewToolbarImage.setImageResource(R.drawable.usericon)
             }
 //            binding.userImage.setImageResource(R.drawable.owl)
+        })
+
+        viewModel.contact.observe(viewLifecycleOwner, Observer { contact ->
+            contact?.let {
+                (requireActivity() as AppCompatActivity).supportActionBar?.title = contact.contactName
+            }
+        })
+
+        viewModel.lastOnline.observe(viewLifecycleOwner, Observer { lastOnline ->
+            lastOnline?.let {
+                (requireActivity() as AppCompatActivity).supportActionBar?.subtitle = lastOnline
+            }
         })
 
 //        viewModel.contact.observe(viewLifecycleOwner, Observer { cnt ->
