@@ -36,6 +36,10 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
     val messages : LiveData<MutableList<DisplayMessage>>
         get() = _messages
 
+    private val _lastOnline = MutableLiveData("Last Online: Never")
+    val lastOnline : LiveData<String>
+        get() = _lastOnline
+
     private var _user : User? = null
     private var userId : Long = 0L
 
