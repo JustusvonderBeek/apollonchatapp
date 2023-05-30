@@ -89,6 +89,11 @@ object ApollonProtocolHandler {
 
 //        Networking.registerCallback(this::ReceiveAny)
 
+        if (userId == 0u) {
+            Log.i("ApollonProtocolHandler", "Initialized Protocol Handler with ID $userId")
+            return
+        }
+
         protocolScope.launch {
             Login()
         }
@@ -468,7 +473,8 @@ object ApollonProtocolHandler {
 
     private suspend fun Login() {
         withContext(Dispatchers.IO) {
-            val login = Header(PacketCategories.CONTACT.cat.toByte(), ContactType.LOGIN.type.toByte(), userId, Random.nextUInt())
+            val mId = messageID.getAndAdd(1).toUInt()
+            val login = Header(PacketCategories.CONTACT.cat.toByte(), ContactType.LOGIN.type.toByte(), userId, mId)
             val packet = login.toByteArray()
             Networking.write(packet)
         }
