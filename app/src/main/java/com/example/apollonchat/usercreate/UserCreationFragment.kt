@@ -1,5 +1,6 @@
 package com.example.apollonchat.usercreate
 
+import android.opengl.Visibility
 import android.os.Bundle
 import android.util.Log
 import android.view.*
@@ -80,7 +81,15 @@ class UserCreationFragment : Fragment(), MenuProvider {
             }
         })
 
-        binding.button.setOnClickListener{
+        viewModel.waiting.observe(viewLifecycleOwner, Observer {waiting ->
+            if (waiting) {
+                binding.indeterminateBar.visibility = View.VISIBLE
+            } else {
+                binding.indeterminateBar.visibility = View.INVISIBLE
+            }
+        })
+
+        binding.button.setOnClickListener {
             viewModel.createUser()
         }
 
