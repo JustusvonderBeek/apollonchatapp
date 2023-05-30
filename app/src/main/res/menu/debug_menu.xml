@@ -4,11 +4,16 @@
 
 <!--    Adding an item to clear the database-->
     <item
+        android:id="@+id/addUserAction"
+        android:title="Add a new User"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@drawable/usericon"
+        />
+    <item
         android:id="@+id/clearDatabaseAction"
         android:title="Clear Database"
         app:showAsAction="never"
         />
-
     <item
         android:id="@+id/clearUserAction"
         android:title="Clear User"
@@ -17,7 +22,5 @@
     <item
         android:id="@+id/reconnectNetworkAction"
         android:title="Reconnect Network" />
-    <item
-        android:id="@+id/addUserAction"
-        android:title="Add a new User" />
+
 </menu>
