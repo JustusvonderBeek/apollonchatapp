@@ -46,6 +46,10 @@ class UserCreationViewModel(val userDatabase : UserDatabaseDao, val application:
     val clickable : LiveData<Boolean>
         get() = _clickable
 
+    private val _waiting = MutableLiveData<Boolean>()
+    val waiting : LiveData<Boolean>
+        get() = _waiting
+
     private var _navigateUserListEvent = MutableLiveData<Boolean>()
     val navigateUserListEvent : LiveData<Boolean>
         get() = _navigateUserListEvent
@@ -54,6 +58,7 @@ class UserCreationViewModel(val userDatabase : UserDatabaseDao, val application:
         userImage.value = "@drawable/usericon.png"
         _navigateUserListEvent.value = false
         _clickable.value = true
+        _waiting.value = false
     }
 
     // This method creates a user with the given values from the UI and stores it into the database
@@ -67,6 +72,7 @@ class UserCreationViewModel(val userDatabase : UserDatabaseDao, val application:
         // Expecting the Network to signal the answer
         // Therefore disabling the creation button
         _clickable.value = false
+        _waiting.value = true
     }
 
     fun reconnectNetwork() {
@@ -77,5 +83,8 @@ class UserCreationViewModel(val userDatabase : UserDatabaseDao, val application:
 
     fun onUserListNavigated() {
         _navigateUserListEvent.value = false
+        _waiting.value = false
+
     }
+
 }
