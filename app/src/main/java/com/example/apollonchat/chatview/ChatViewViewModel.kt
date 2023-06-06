@@ -40,6 +40,10 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
     val lastOnline : LiveData<String>
         get() = _lastOnline
 
+    private val _scroll = MutableLiveData(-1)
+    val scrollToBottom : LiveData<Int>
+        get() = _scroll
+
     private var _user : User? = null
     private var userId : Long = 0L
 
@@ -74,6 +78,10 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
         }
     }
 
+    fun showContactInformation() {
+        Log.i("ChatViewViewModel", "Showing contact information...")
+    }
+
     fun hideKeyboardDone() {
         _hideKeyboard.value = false
     }
@@ -82,6 +90,7 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
         uiScope.launch {
             val localContact = loadContactFromDatabase(contactID)
             _contact.value = localContact
+            ScrollBottom()
 //            _localMessages = loadMessages()
 //            for (m in localContact.messages) {
 //                _localMessages.add(DisplayMessage(Random.nextInt(), false, content = m, timestamp = ""))
@@ -97,6 +106,10 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
 //        }
 //        return res
 //    }
+
+    fun ScrollBottom() {
+        this._scroll.value = messages.value?.let { it.size - 1 }
+    }
 
     private suspend fun updateLastMessage(message : String) {
         withContext(Dispatchers.IO) {
