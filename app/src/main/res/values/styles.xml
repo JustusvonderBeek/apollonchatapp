@@ -64,4 +64,16 @@
         <item name="android:padding">12dp</item>
         <item name="cornerRadius">20dp</item>
     </style>
+    <style name="ListUserTextHeaderStyle" parent="Widget.AppCompat.TextView">
+        <item name="android:textSize">15sp</item>
+        <item name="fontFamily">sans-serif</item>
+    </style>
+    <style name="ListUserTextContentStyle" parent="Widget.AppCompat.TextView">
+        <item name="android:textSize">15sp</item>
+        <item name="fontFamily">sans-serif-light</item>
+    </style>
+    <style name="ListUserTextTimeStyle" parent="Widget.AppCompat.TextView">
+        <item name="android:textSize">13sp</item>
+        <item name="fontFamily">sans-serif-light</item>
+    </style>
 </resources>
