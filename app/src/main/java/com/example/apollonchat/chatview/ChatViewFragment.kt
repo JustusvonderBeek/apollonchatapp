@@ -6,6 +6,9 @@ import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
@@ -19,7 +22,11 @@ import com.example.apollonchat.R
 import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.databinding.FragmentChatViewBinding
 import androidx.appcompat.widget.Toolbar
-class ChatViewFragment : Fragment() {
+import androidx.core.view.MenuProvider
+import androidx.navigation.fragment.findNavController
+import com.example.apollonchat.chatlist.ChatListFragmentDirections
+
+class ChatViewFragment : Fragment(), MenuProvider {
     private lateinit var viewModel : ChatViewViewModel
     private lateinit var viewModelFactory : ChatViewViewModelFactory
 
@@ -30,6 +37,20 @@ class ChatViewFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+    }
+
+    override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+        menuInflater.inflate(R.menu.chat_view_menu, menu)
+    }
+
+    override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+        when (menuItem.itemId) {
+            R.id.manageUserAction -> {
+                viewModel.showContactInformation()
+                return true
+            }
+        }
+        return false
     }
 
     override fun onCreateView(
@@ -57,6 +78,7 @@ class ChatViewFragment : Fragment() {
         viewModel.messages.observe(viewLifecycleOwner, Observer { messages ->
             messages?.let {
                 adapter.submitList(messages)
+                viewModel.ScrollBottom()
             }
         })
 
@@ -102,6 +124,12 @@ class ChatViewFragment : Fragment() {
         viewModel.lastOnline.observe(viewLifecycleOwner, Observer { lastOnline ->
             lastOnline?.let {
                 (requireActivity() as AppCompatActivity).supportActionBar?.subtitle = lastOnline
+            }
+        })
+
+        viewModel.scrollToBottom.observe(viewLifecycleOwner, Observer { scroll ->
+            if (scroll >  0) {
+                binding.messageView.smoothScrollToPosition(scroll)
             }
         })
 
