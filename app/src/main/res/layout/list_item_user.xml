@@ -19,65 +19,110 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
-        app:cardCornerRadius="5dp"
+        app:cardCornerRadius="10dp"
         app:cardElevation="5dp"
         android:orientation="horizontal"
         android:clickable="true"
         android:onClick="@{() -> clickListener.onClick(contact)}"
         android:focusable="true">
 
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            >
-
-            <ImageView
-                android:id="@+id/userImage"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:layout_marginStart="16dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginEnd="8dp"
-                android:layout_marginBottom="8dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/usericon"
-                tools:srcCompat="@tools:sample/avatars" />
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/wrapperLayout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="8dp">
 
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/textWrapperLayout"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:id="@+id/imageWrapper"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
 
-                <TextView
-                    android:id="@+id/username"
+                <ImageView
+                    android:id="@+id/userImage"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:srcCompat="@drawable/ic_user"
+                    />
+
+                <ImageView
+                    android:id="@+id/imageView"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:src="@drawable/status_circle"
+                    android:foregroundTint="@color/apollon_green"
+                    android:elevation="1dp"
+                    app:layout_constraintBottom_toBottomOf="@+id/userImage"
+                    app:layout_constraintStart_toEndOf="@+id/userImage"
+                    android:layout_marginStart="-8dp"
+                    android:layout_marginBottom="-5dp"
+                    />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <LinearLayout
+                android:id="@+id/textContentWrapper"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/imageWrapper"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_marginBottom="8dp"
-                    android:text="@{String.valueOf(contact.contactName)}"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    android:orientation="horizontal"
+                    android:id="@+id/linearLayout2">
+
+                    <TextView
+                        android:id="@+id/username"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0"
+                        style="@style/ListUserTextHeaderStyle"
+                        android:text="@{String.valueOf(contact.contactName)}"
+                        />
+
+                    <Space
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1" />
+
+                    <TextView
+                        android:id="@+id/lastExchange"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0"
+                        android:text="12:24"
+                        style="@style/ListUserTextTimeStyle"
+                        />
+
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/lastMessage"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_marginBottom="8dp"
-                    android:text="@{contact.lastMessage}"
                     android:maxLength="30"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="@id/username"
-                    app:layout_constraintTop_toBottomOf="@id/username" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
+                    android:layout_marginTop="5dp"
+                    android:text="@{contact.lastMessage}"
+                    style="@style/ListUserTextContentStyle"
+                    />
 
-        </LinearLayout>
+            </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
     </androidx.cardview.widget.CardView>
 </layout>
