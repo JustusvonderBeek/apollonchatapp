@@ -1,7 +1,14 @@
 package com.example.apollonchat
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.databinding.DataBindingUtil
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
@@ -28,6 +35,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        setupNotification()
+
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
         setSupportActionBar(binding.mainActionBar)
 
@@ -48,6 +57,17 @@ class MainActivity : AppCompatActivity() {
             loadUser()
         }
         ApollonProtocolHandler.initialize(userId, application)
+
+        val builder = NotificationCompat.Builder(this, "NOTIFICATIONS")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("Apollon Chat Setup Finished")
+            .setContentText("Finished the setup successfully")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+
+        with(NotificationManagerCompat.from(this)) {
+            notify(1, builder.build())
+        }
     }
 
     private suspend fun loadUser() : UInt {
@@ -59,6 +79,18 @@ class MainActivity : AppCompatActivity() {
                 userId = user.userId.toUInt()
         }
         return userId
+    }
+
+    private fun setupNotification() {
+        // No need to check version as SDK is always 26+
+        val name = getString(R.string.notification_channel)
+        val descriptionText = getString(R.string.notification_description)
+        val importance = NotificationManager.IMPORTANCE_DEFAULT
+        val channel = NotificationChannel("NOTIFICATIONS", name, importance).apply {
+            description = descriptionText
+        }
+        val notificationManager : NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
 
     override fun onSupportNavigateUp(): Boolean {
