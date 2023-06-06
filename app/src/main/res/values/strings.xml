@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">Apollon Chat</string>
     <!-- TODO: Remove or change this placeholder text -->
+    <string name="notification_channel">Notify</string>
+    <string name="notification_description">Description</string>
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="btn_crt_user">Create user</string>
     <string name="hint_insert_username">Insert Username</string>
