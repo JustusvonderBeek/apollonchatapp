@@ -3,6 +3,7 @@ package com.example.apollonchat.networking.ApollonProtocolHandler
 import android.content.Context
 import android.icu.lang.UCharacter
 import android.util.Log
+import android.util.TimeUtils
 import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.database.contact.Contact
 import com.example.apollonchat.database.contact.ContactDatabaseDao
@@ -27,10 +28,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -38,10 +36,10 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.InputStream
 import java.time.LocalDateTime
+import java.util.Calendar
+import java.util.Date
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
-import kotlin.random.nextUInt
-import kotlin.time.Duration
 
 /*
 * Instead of using a class we use an object.
@@ -56,7 +54,7 @@ object ApollonProtocolHandler {
     private var randomness : Random = Random(LocalDateTime.now().nano)
     private var timeout = 2000L
     private var messageID : AtomicInteger = AtomicInteger(randomness.nextInt())
-    private var unackedPackets : MutableList<Pair<UInt, ByteArray>> = ArrayList()
+    private var unackedPackets : MutableList<Triple<Pair<UInt, Int>, Long, ByteArray>> = ArrayList()
     // TODO: What is this for?
     private var unhandledPackets : MutableList<ByteArray> = ArrayList()
     private var ignoreUnknownJson = Json { ignoreUnknownKeys = true }
@@ -98,7 +96,15 @@ object ApollonProtocolHandler {
             Login()
         }
 
+        protocolScope.launch {
+            HandleUnackedPackets()
+        }
+
         Log.i("ApollonProtocolHandler", "Initialized Protocol Handler with ID $userId")
+    }
+
+    fun Close() {
+        storeUnacked()
     }
 
     private fun readFullLine(incoming : InputStream, timeout : Long) : String? {
@@ -175,7 +181,7 @@ object ApollonProtocolHandler {
                     ContactType.CONTACT_ACK.type.toLong() -> {
                         val ackedID = header.MessageId
                         unackedPackets.removeIf {
-                                pair -> pair.first == ackedID
+                                pair -> pair.first.first == ackedID
                         }
                     }
                     else -> {
@@ -201,7 +207,7 @@ object ApollonProtocolHandler {
                         incomingStream.bufferedReader().readLine()
                         val ackedID = header.MessageId
                         unackedPackets.removeIf {
-                                pair -> pair.first == ackedID
+                                pair -> pair.first.first == ackedID
                         }
                     }
                     else -> {
@@ -341,10 +347,36 @@ object ApollonProtocolHandler {
         val rawPayload = payload + "\n"
         val rawHeader = header.toByteArray()
         val packet = rawHeader + rawPayload.toByteArray(Charsets.UTF_8)
-        val pair = Pair(header.MessageId, packet)
-        unackedPackets.add(pair)
+        val triple = Triple(Pair(header.MessageId, 0), Calendar.getInstance().timeInMillis, packet)
+        unackedPackets.add(triple)
         Networking.write(packet)
     }
+
+    // ---------------------------------------------------
+    // Helping method
+    // ---------------------------------------------------
+
+    @Serializable
+    data class RawPacket (
+        var id : UInt,
+        var content : ByteArray
+    )
+
+    private fun storeUnacked() {
+        val outfile = File(imageFileDir, "unacked.json")
+        val rawPackets = mutableListOf<RawPacket>()
+        for (pack in unackedPackets) {
+            val raw = RawPacket(pack.first.first, pack.third)
+            rawPackets.add(raw)
+        }
+        val converted = Json.encodeToString(rawPackets)
+        val outlist = converted.toByteArray()
+        outfile.writeBytes(outlist)
+    }
+
+    // ---------------------------------------------------
+    // Helping method end
+    // ---------------------------------------------------
 
     // TODO: Test, Cleanup
     private suspend fun receiveContactInformation(header : Header, payload : String) {
@@ -458,6 +490,33 @@ object ApollonProtocolHandler {
             val imageFile = File(imageFileDir, "${contactId}.png")
             val newContact = Contact(contactId.toLong(), username, imageFile.absolutePath)
             contactDatabase!!.insertContact(newContact)
+        }
+    }
+
+    private suspend fun HandleUnackedPackets() {
+        withContext(Dispatchers.IO) {
+            while (true) {
+                if (unackedPackets.size > 0) {
+                    val timeNow = Calendar.getInstance().timeInMillis
+                    for (i in unackedPackets.indices) {
+                        val packet = unackedPackets[i]
+                        if (packet.second + timeout <= timeNow && packet.first.second < 3) {
+                            // Sending again
+//                            SendAny(packet.third)
+                            // Need to check for
+                            Log.i("ApollonProtocolHandler", "Sending packet ${packet.first} again...")
+                            Networking.write(packet.third)
+                            val first = Pair(packet.first.first, packet.first.second + 1)
+                            unackedPackets[i] = Triple(first, Calendar.getInstance().timeInMillis, packet.third)
+                        } else {
+                            // Tried sending packet already 3 times. Remove?
+                            // Depending on the packet type or try when internet becomes available again
+                            // Mechanism to determine connection status
+                        }
+                    }
+                }
+                Thread.sleep(timeout + 10)
+            }
         }
     }
 
