@@ -1,11 +1,15 @@
 package com.example.apollonchat
 
+import android.util.Log
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.database.contact.Contact
 import com.example.apollonchat.networking.Networking
+import io.ktor.network.selector.SelectorManager
+import io.ktor.network.sockets.aSocket
+import io.ktor.network.sockets.openReadChannel
 import io.ktor.util.hex
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +22,7 @@ import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.lang.IllegalStateException
 import java.net.InetAddress
 import kotlin.random.Random
 
@@ -49,10 +54,11 @@ class NetworkTest {
     @Test
     fun testInitNetwork() {
         val netConfig = Networking.Configuration()
-        val remote = InetAddress.getByName("10.2.0.2")
+//        val remote = InetAddress.getByName("10.2.0.2")
         val secure = false
-        netConfig.remote = remote
+        netConfig.remote = "10.2.0.2"
         netConfig.secure = secure
+        Networking.initialize(netConfig)
         Networking.initialize(netConfig)
 
 //        Assert.assertEquals(Networking.remoteAddress, remote)
@@ -60,35 +66,89 @@ class NetworkTest {
     }
 
     @Test
-    fun testStartNetwork() {
-        val netConfig = Networking.Configuration()
-        Networking.initialize(netConfig)
-
+    fun testStartNetworkTCP() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val job = Job()
-        val testScope = CoroutineScope(Dispatchers.Main + job)
-        testScope.launch {
-            Networking.start(context)
-        }
+
         runBlocking {
-            delay(1000L)
+            // Expecting an exception
+            try {
+                Networking.start(context)
+                Assert.fail()
+            } catch (ex : IllegalStateException) {
+                Log.i("NetworkTest", "Exception correctly thrown")
+            }
+
+            val netConfig = Networking.Configuration()
+            netConfig.secure = false
+            netConfig.remote = "10.2.0.2"
+            Networking.initialize(netConfig)
+            Networking.start(context)
+
+            delay(500L)
+            Networking.start(context)
+            delay(500L)
+            Networking.start(context)
+            delay(500L)
         }
-        job.cancel()
     }
 
     @Test
-    @Throws(Exception::class)
-    fun testSimpleConnection() {
+    fun testStartNetworkTLS() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
 
-        val netConfig = Networking.Configuration()
-        Networking.initialize(netConfig)
-        val uijob = Job()
-        val scope = CoroutineScope(Dispatchers.Main + uijob)
-        scope.launch {
+        runBlocking {
+            // Expecting an exception
+            try {
+                Networking.start(context)
+                Assert.fail()
+            } catch (ex : IllegalStateException) {
+                Log.i("NetworkTest", "Exception correctly thrown")
+            }
+
+            val netConfig = Networking.Configuration()
+            netConfig.secure = true
+            netConfig.remote = "10.2.0.2"
+            Networking.initialize(netConfig)
             Networking.start(context)
+
+            delay(500L)
+            Networking.start(context)
+            delay(500L)
+            Networking.start(context)
+            delay(500L)
         }
-        uijob.complete()
+    }
+
+    @Test
+    fun TestSending() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val job = Job()
+        val netScope = CoroutineScope(Dispatchers.Main + job)
+
+        // Starting a local endpoint
+        netScope.launch {
+            val selectorManager = SelectorManager(Dispatchers.IO)
+            val serverSocket = aSocket(selectorManager).tcp().bind("127.0.0.1", 50000)
+            val c = serverSocket.accept()
+            val channel = c.openReadChannel()
+            channel.read(10) {
+                Log.i("NetworkTest", "Buffer received")
+            }
+        }
+
+        runBlocking {
+            val netConfig = Networking.Configuration()
+            netConfig.secure = false
+            netConfig.remote = "127.0.0.1"
+            Networking.initialize(netConfig)
+            Networking.start(context)
+
+            val data = ByteArray(10)
+            Networking.write(data)
+            delay(200L)
+        }
+
+        job.cancel()
     }
 
 }
