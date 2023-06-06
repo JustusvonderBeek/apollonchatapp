@@ -7,7 +7,7 @@
         android:id="@+id/addUserAction"
         android:title="Add a new User"
         app:showAsAction="ifRoom|withText"
-        android:icon="@drawable/usericon"
+        android:icon="@drawable/ic_add_user"
         />
     <item
         android:id="@+id/clearDatabaseAction"
