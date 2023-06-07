@@ -216,6 +216,9 @@ object Networking {
                 Log.i("Networking", "Failed to init send channel for remote")
             } catch (ex : IOException) {
                 Log.i("Networking", "Failed to send to remote")
+            } catch (ex : Exception) {
+                Log.i("Networking", "Some error occured: $ex")
+                return@withContext
             }
         }
         initBarrier.release()
@@ -253,6 +256,9 @@ object Networking {
                 Log.i("Networking", "Failed to get read channel for remote: ${ex.printStackTrace()}")
             } catch (ex : IOException) {
                 Log.i("Networking", "Failed to read from remote")
+            } catch (ex : Exception) {
+                Log.i("Networking", "Some error: $ex")
+                return@withContext
             }
         }
         initBarrier.release()
