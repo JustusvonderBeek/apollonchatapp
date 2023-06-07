@@ -3,7 +3,6 @@ package com.example.apollonchat.networking.ApollonProtocolHandler
 import android.content.Context
 import android.icu.lang.UCharacter
 import android.util.Log
-import android.util.TimeUtils
 import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.database.contact.Contact
 import com.example.apollonchat.database.contact.ContactDatabaseDao
@@ -18,6 +17,8 @@ import com.example.apollonchat.networking.constants.PacketCategories
 import com.example.apollonchat.networking.packets.ContactInfo
 import com.example.apollonchat.networking.packets.ContactOption
 import com.example.apollonchat.networking.packets.Create
+import com.example.apollonchat.networking.packets.FileHave
+import com.example.apollonchat.networking.packets.FileInfo
 import com.example.apollonchat.networking.packets.Header
 import com.example.apollonchat.networking.packets.Message
 import com.example.apollonchat.networking.packets.NetworkOption
@@ -37,7 +38,6 @@ import java.io.File
 import java.io.InputStream
 import java.time.LocalDateTime
 import java.util.Calendar
-import java.util.Date
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
 
@@ -47,14 +47,13 @@ import kotlin.random.Random
 * preventing any duplication or misses
  */
 object ApollonProtocolHandler {
-    // TODO: Cleanup and divide this section visually from the methods below
     // TODO: Include saving mechanism for outgoing messages
 
     private var userId : UInt = 0U
     private var randomness : Random = Random(LocalDateTime.now().nano)
     private var timeout = 2000L
     private var messageID : AtomicInteger = AtomicInteger(randomness.nextInt())
-    private var unackedPackets : MutableList<Triple<Pair<UInt, Int>, Long, ByteArray>> = ArrayList()
+    private var unackedPackets : MutableList<StorageMessage> = ArrayList()
     // TODO: What is this for?
     private var unhandledPackets : MutableList<ByteArray> = ArrayList()
     private var ignoreUnknownJson = Json { ignoreUnknownKeys = true }
@@ -93,7 +92,7 @@ object ApollonProtocolHandler {
         }
 
         protocolScope.launch {
-            Login()
+            login()
         }
 
         protocolScope.launch {
@@ -145,13 +144,25 @@ object ApollonProtocolHandler {
                     ContactType.CREATE.type.toLong() -> {
                         // Not expecting any payload but need to create a new user in the database
                         if (userDatabase == null) {
-                            Log.i("ApollonProtocolHandler", "Database is null. Cannot insert new user!")
+                            throw IllegalStateException("Database is not set! Cannot store user!")
+                        }
+                        // Find matching send create packet
+                        val matching = findMessageId(header.MessageId)
+                        if (matching == null) {
+                            Log.i("ApollonProtocolHandler", "Cannot find matching message ID. Either malicious server or we failed locally!")
                             return
                         }
-                        val newUser = User(header.UserId.toLong(), "TODO", userImage = "drawable/usericon.png")
-                        // TODO: BUGFIX might running on wrong thread and leading to starvation
-                        userDatabase!!.insertUser(newUser)
-                        Log.i("ApollonProtocolHandler", "Wrote user into database")
+                        val sendCreate = Json.decodeFromString<Create>(matching)
+                        val newUser = User(header.UserId.toLong(), sendCreate.Username, userImage = "drawable/ic_user")
+
+                        protocolScope.launch {
+                            insertUserIntoDatabase(newUser)
+                            Log.i("ApollonProtocolHandler", "Wrote user into database")
+                        }
+                        // Remove the message that was stored for the user creation
+                        unackedPackets.removeIf {
+                            it.MessageID == header.MessageId
+                        }
                     }
                     ContactType.CONTACTS.type.toLong() -> {
                         // Send this further to the contact view model?
@@ -163,6 +174,10 @@ object ApollonProtocolHandler {
                         Log.i("ApollonProtocolHandler", "Showing the contacts via the callback")
                         if (contactsCallback != null) {
                             contactsCallback!!.invoke(payload)
+                        }
+                        // Clear the search that lead to this contact list
+                        unackedPackets.removeIf {
+                            it.MessageID == header.MessageId
                         }
                     }
                     ContactType.OPTION.type.toLong() -> {
@@ -181,7 +196,7 @@ object ApollonProtocolHandler {
                     ContactType.CONTACT_ACK.type.toLong() -> {
                         val ackedID = header.MessageId
                         unackedPackets.removeIf {
-                                pair -> pair.first.first == ackedID
+                                it.MessageID == ackedID
                         }
                     }
                     else -> {
@@ -207,7 +222,69 @@ object ApollonProtocolHandler {
                         incomingStream.bufferedReader().readLine()
                         val ackedID = header.MessageId
                         unackedPackets.removeIf {
-                                pair -> pair.first.first == ackedID
+                                it.MessageID == ackedID
+                        }
+                    }
+                    DataType.FILE_INFO.type.toLong() -> {
+                        val payload = incomingStream.bufferedReader().readLine()
+                        val fileInfo = Json.decodeFromString<FileInfo>(payload)
+                        Log.i("ApollonProtocolHandler", "Received File Information")
+                        // Check for existing file information (skip for now)
+                        val fileHave = FileHave(0)
+                        val encoded = Json.encodeToString(fileHave)
+                        val haveHeader = Header(PacketCategories.DATA.cat.toByte(), DataType.FILE_HAVE.type.toByte(), userId, header.MessageId)
+                        val rawPacket = encoded.toByteArray()
+                        Networking.write(haveHeader.toByteArray() + rawPacket)
+                    }
+                    DataType.FILE_HAVE.type.toLong() -> {
+                        val payload = incomingStream.bufferedReader().readLine()
+                        val fileHave = Json.decodeFromString<FileHave>(payload)
+
+                        val sfileInfo = findMessageId(header.MessageId)
+                        if (sfileInfo == null) {
+                            Log.i("ApollonProtocolHandler",  "Cannot find matching file information for file transfer!")
+                            return
+                        }
+                        val fileInfo = Json.decodeFromString<FileInfo>(sfileInfo)
+                        // Transfer of file
+                        val file = File(fileInfo.FileName)
+                        val buffer = file.readBytes()
+                        val fileHeader = Header(PacketCategories.DATA.cat.toByte(), DataType.FILE.type.toByte(), userId, header.MessageId)
+                        Networking.write(fileHeader.toByteArray() + buffer.sliceArray(fileHave.FileOffset until buffer.size))
+                    }
+                    DataType.FILE.type.toLong() -> {
+                        val sfileInfo = findMessageId(header.MessageId)
+                        if (sfileInfo == null) {
+                            Log.i("ApollonProtocolHandler",  "Cannot find matching file information for file transfer!")
+                            return
+                        }
+                        val fileInfo = Json.decodeFromString<FileInfo>(sfileInfo)
+                        // Receive the full file and store it
+                        val buffer = ByteArray(fileInfo.CompressedLength.toInt())
+                        var read = incomingStream.read(buffer)
+                        if (read < buffer.size) {
+                            read = incomingStream.read(buffer, read, buffer.size-read)
+                        }
+                        // Decompress the image
+                        val decompress = ByteArray(fileInfo.FileLength.toInt())
+                        if (fileInfo.Compression == "ZSTD") {
+                            val extracted = Zstd.decompress(decompress, buffer)
+                            if (extracted != fileInfo.FileLength.toLong()) {
+                                Log.i("ApollonProtocolHandler", "Decompression extracted different number of bytes than given by file information!")
+                            }
+                        } else {
+                            buffer.copyInto(decompress)
+                        }
+                        val storageFile = File(imageFileDir, fileInfo.FileName)
+                        storageFile.writeBytes(decompress)
+                        // Create ack and send back
+                        val fileAck = Header(PacketCategories.DATA.cat.toByte(), DataType.FILE_ACK.type.toByte(), userId, header.MessageId)
+                        val rawAck = fileAck.toByteArray()
+                        Networking.write(rawAck)
+                    }
+                    DataType.FILE_ACK.type.toLong() -> {
+                        unackedPackets.removeIf {
+                            it.MessageID == header.MessageId
                         }
                     }
                     else -> {
@@ -241,6 +318,12 @@ object ApollonProtocolHandler {
             }
             contact.lastMessage = message.Message
             contactDatabase!!.updateContact(contact)
+        }
+    }
+
+    private suspend fun insertUserIntoDatabase(user : User) {
+        withContext(Dispatchers.IO) {
+            userDatabase?.insertUser(user)
         }
     }
 
@@ -341,35 +424,46 @@ object ApollonProtocolHandler {
         SendAny(header, rawPayload)
     }
 
+    @Serializable
+    class StorageMessage(
+        val MessageID : UInt,
+        var TimeSent : Long,
+        val RawPacket : ByteArray,
+        val JsonPacket : String,
+        var Resend : Int
+    ) {
+        fun IncreaseResend() {
+            this.Resend = this.Resend + 1
+            this.TimeSent = Calendar.getInstance().timeInMillis
+        }
+    }
+
     // TODO: Divide visually from receive methods
     private fun SendAny(header : Header, payload : String) {
         // Get the message ID of the packet to ack later
         val rawPayload = payload + "\n"
         val rawHeader = header.toByteArray()
         val packet = rawHeader + rawPayload.toByteArray(Charsets.UTF_8)
-        val triple = Triple(Pair(header.MessageId, 0), Calendar.getInstance().timeInMillis, packet)
-        unackedPackets.add(triple)
+        // Struct contains the information for resend and process data
+        val store = StorageMessage(header.MessageId, Calendar.getInstance().timeInMillis, packet, payload, 0)
+        unackedPackets.add(store)
         Networking.write(packet)
+    }
+
+    private fun findMessageId(id : UInt) : String? {
+        val packet = unackedPackets.find {
+            it.MessageID == id
+        } ?: return null
+        return packet.JsonPacket
     }
 
     // ---------------------------------------------------
     // Helping method
     // ---------------------------------------------------
 
-    @Serializable
-    data class RawPacket (
-        var id : UInt,
-        var content : ByteArray
-    )
-
     private fun storeUnacked() {
         val outfile = File(imageFileDir, "unacked.json")
-        val rawPackets = mutableListOf<RawPacket>()
-        for (pack in unackedPackets) {
-            val raw = RawPacket(pack.first.first, pack.third)
-            rawPackets.add(raw)
-        }
-        val converted = Json.encodeToString(rawPackets)
+        val converted = Json.encodeToString(unackedPackets)
         val outlist = converted.toByteArray()
         outfile.writeBytes(outlist)
     }
@@ -432,6 +526,8 @@ object ApollonProtocolHandler {
             contact.lastMessage = message.Message
             contactDatabase!!.updateContact(contact)
         }
+
+        // TODO: Notify, probably best using background activity
     }
 
     // TODO: Test, Cleanup
@@ -500,20 +596,22 @@ object ApollonProtocolHandler {
                     val timeNow = Calendar.getInstance().timeInMillis
                     for (i in unackedPackets.indices) {
                         val packet = unackedPackets[i]
-                        if (packet.second + timeout <= timeNow && packet.first.second < 3) {
+                        if (packet.TimeSent + timeout <= timeNow && packet.Resend < 3) {
                             // Sending again
 //                            SendAny(packet.third)
                             // Need to check for
-                            Log.i("ApollonProtocolHandler", "Sending packet ${packet.first} again...")
-                            Networking.write(packet.third)
-                            val first = Pair(packet.first.first, packet.first.second + 1)
-                            unackedPackets[i] = Triple(first, Calendar.getInstance().timeInMillis, packet.third)
+                            Log.i("ApollonProtocolHandler", "Sending packet ${packet.MessageID} again...")
+                            Networking.write(packet.RawPacket)
+                            packet.IncreaseResend()
                         } else {
                             // Tried sending packet already 3 times. Remove?
                             // Depending on the packet type or try when internet becomes available again
                             // Mechanism to determine connection status
                         }
                     }
+                }
+                unackedPackets.removeIf {
+                    it.Resend > 3
                 }
                 Thread.sleep(timeout + 10)
             }
@@ -530,7 +628,7 @@ object ApollonProtocolHandler {
         }
     }
 
-    private suspend fun Login() {
+    private suspend fun login() {
         withContext(Dispatchers.IO) {
             val mId = messageID.getAndAdd(1).toUInt()
             val login = Header(PacketCategories.CONTACT.cat.toByte(), ContactType.LOGIN.type.toByte(), userId, mId)
