@@ -4,8 +4,7 @@
 
     <item
         android:id="@+id/manageUserAction"
-        android:title="Checking contact infos"
-        app:showAsAction="ifRoom|withText"
-        android:icon="@drawable/usericon"
+        android:title="Contact Information"
+        app:showAsAction="never"
         />
 </menu>
