@@ -128,9 +128,12 @@ class ChatViewFragment : Fragment(), MenuProvider {
         })
 
         viewModel.scrollToBottom.observe(viewLifecycleOwner, Observer { scroll ->
-            if (scroll >  0) {
-                binding.messageView.smoothScrollToPosition(scroll)
-            }
+           scroll?.let {
+               if (it > 0) {
+                   binding.messageView.smoothScrollToPosition(scroll)
+                   viewModel.ScrolledBottom()
+               }
+           }
         })
 
 //        viewModel.contact.observe(viewLifecycleOwner, Observer { cnt ->
