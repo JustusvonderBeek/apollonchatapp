@@ -106,10 +106,10 @@ object ApollonProtocolHandler {
         val header = Header.convertRawToHeader(headerBuffer) ?: return
         Log.i("ApollonProtocolHandler", "Header: $header")
         // We cannot always read payload, because of packets that don't have a payload
-        when(header.Category.toLong()) {
-            PacketCategories.CONTACT.cat.toLong() -> {
-                when(header.Type.toLong()) {
-                    ContactType.CREATE.type.toLong() -> {
+        when(PacketCategories.getFromByte(header.Category)) {
+            PacketCategories.CONTACT -> {
+                when(ContactType.getFromByte(header.Type)) {
+                    ContactType.CREATE -> {
                         // Not expecting any payload but need to create a new user in the database
                         if (userDatabase == null) {
                             throw IllegalStateException("Database is not set! Cannot store user!")
@@ -132,7 +132,7 @@ object ApollonProtocolHandler {
                             it.MessageID == header.MessageId
                         }
                     }
-                    ContactType.CONTACTS.type.toLong() -> {
+                    ContactType.CONTACTS -> {
                         // Send this further to the contact view model?
                         // Or maybe let this one handle this alone?
                         // We need to "clean" the pipe, so read anyways
@@ -148,20 +148,20 @@ object ApollonProtocolHandler {
                             it.MessageID == header.MessageId
                         }
                     }
-                    ContactType.OPTION.type.toLong() -> {
+                    ContactType.OPTION -> {
                         // Differentiate further
                         val payload = incomingStream.bufferedReader().readLine()
                         protocolScope.launch {
                             receiveContactOption(header, payload)
                         }
                     }
-                    ContactType.CONTACT_INFO.type.toLong() -> {
+                    ContactType.CONTACT_INFO -> {
                         val payload = incomingStream.bufferedReader().readLine()
                         protocolScope.launch {
                             receiveContactInformation(header, payload)
                         }
                     }
-                    ContactType.CONTACT_ACK.type.toLong() -> {
+                    ContactType.CONTACT_ACK -> {
                         val ackedID = header.MessageId
                         unackedPackets.removeIf {
                                 it.MessageID == ackedID
@@ -173,9 +173,9 @@ object ApollonProtocolHandler {
                     }
                 }
             }
-            PacketCategories.DATA.cat.toLong() -> {
-                when(header.Type.toLong()) {
-                    DataType.TEXT.type.toLong() ->  {
+            PacketCategories.DATA -> {
+                when(DataType.getFromByte(header.Type)) {
+                    DataType.TEXT ->  {
                         // Receive only payload and then free the stream to continue receiving
 //                        val payload = readFullLine(incomingStream, timeout) ?: return
                         val payload = incomingStream.bufferedReader().readLine()
@@ -184,16 +184,17 @@ object ApollonProtocolHandler {
                             receiveTextMessage(header, payload)
                         }
                     }
-                    DataType.TEXT_ACK.type.toLong() -> {
+                    DataType.TEXT_ACK -> {
                         // Extract the messageID that was acked
                         // empty the stream for now
                         incomingStream.bufferedReader().readLine()
                         val ackedID = header.MessageId
+                        Log.i("ApollonProtocolHandler", "Got TextAck for $ackedID")
                         unackedPackets.removeIf {
                                 it.MessageID == ackedID
                         }
                     }
-                    DataType.FILE_INFO.type.toLong() -> {
+                    DataType.FILE_INFO -> {
                         val payload = incomingStream.bufferedReader().readLine()
                         val fileInfo = Json.decodeFromString<FileInfo>(payload)
                         Log.i("ApollonProtocolHandler", "Received File Information")
@@ -204,7 +205,7 @@ object ApollonProtocolHandler {
                         val rawPacket = encoded.toByteArray()
                         Networking.write(haveHeader.toByteArray() + rawPacket)
                     }
-                    DataType.FILE_HAVE.type.toLong() -> {
+                    DataType.FILE_HAVE -> {
                         val payload = incomingStream.bufferedReader().readLine()
                         val fileHave = Json.decodeFromString<FileHave>(payload)
 
@@ -220,7 +221,7 @@ object ApollonProtocolHandler {
                         val fileHeader = Header(PacketCategories.DATA.cat.toByte(), DataType.FILE.type.toByte(), userId, header.MessageId)
                         Networking.write(fileHeader.toByteArray() + buffer.sliceArray(fileHave.FileOffset until buffer.size))
                     }
-                    DataType.FILE.type.toLong() -> {
+                    DataType.FILE -> {
                         val sfileInfo = findMessageId(header.MessageId)
                         if (sfileInfo == null) {
                             Log.i("ApollonProtocolHandler",  "Cannot find matching file information for file transfer!")
@@ -250,7 +251,7 @@ object ApollonProtocolHandler {
                         val rawAck = fileAck.toByteArray()
                         Networking.write(rawAck)
                     }
-                    DataType.FILE_ACK.type.toLong() -> {
+                    DataType.FILE_ACK -> {
                         unackedPackets.removeIf {
                             it.MessageID == header.MessageId
                         }
