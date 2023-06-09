@@ -111,6 +111,11 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
         this._scroll.value = messages.value?.let { it.size - 1 }
     }
 
+    fun ScrolledBottom() {
+        this._scroll.value = -1
+
+    }
+
     private suspend fun updateLastMessage(message : String) {
         withContext(Dispatchers.IO) {
             val contact = contactDatabase.getContact(contactID)
