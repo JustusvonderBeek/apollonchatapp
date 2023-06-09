@@ -6,5 +6,9 @@ enum class DataType(val type : Int) {
     FILE_INFO(3),
     FILE_HAVE(4),
     FILE(5),
-    FILE_ACK(6),
+    FILE_ACK(6);
+
+    companion object {
+        fun getFromByte(value : Byte) = values().firstOrNull{ it.type == value.toInt() }
+    }
 }

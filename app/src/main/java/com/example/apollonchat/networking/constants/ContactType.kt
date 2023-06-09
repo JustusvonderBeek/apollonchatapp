@@ -7,5 +7,9 @@ enum class ContactType(val type : Int) {
     OPTION(4),
     LOGIN(5),
     CONTACT_INFO(6),
-    CONTACT_ACK(7)
+    CONTACT_ACK(7);
+
+    companion object {
+        fun getFromByte(value : Byte) = values().firstOrNull{ it.type == value.toInt() }
+    }
 }
