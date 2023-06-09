@@ -1,12 +1,10 @@
 package com.example.apollonchat.chatview
 
 import android.app.Application
-import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.apollonchat.R
 import com.example.apollonchat.database.contact.Contact
 import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.message.DisplayMessage
@@ -14,9 +12,6 @@ import com.example.apollonchat.database.message.MessageDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
 import com.example.apollonchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
-import com.example.apollonchat.networking.packets.Message
-import com.example.apollonchat.networking.Networking
-import io.ktor.util.date.*
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.IOException
@@ -70,7 +65,7 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
         if (message != null && !message.contentEquals("")) {
             Log.i("ChatViewViewModel", "Message != null")
 
-            ApollonProtocolHandler.SendText(message, contactID.toUInt())
+            ApollonProtocolHandler.sendText(message, contactID.toUInt())
 
             // Clearing input and hiding keyboard
             _hideKeyboard.value = true
