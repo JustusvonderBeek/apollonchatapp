@@ -84,53 +84,21 @@ object ApollonProtocolHandler {
         messageDatabase = database.messageDao()
         this.userId = userId
 
-//        Networking.registerCallback(this::ReceiveAny)
-
         if (userId == 0u) {
             Log.i("ApollonProtocolHandler", "Initialized Protocol Handler with ID $userId")
             return
         }
-
         protocolScope.launch {
             login()
         }
-
         protocolScope.launch {
             HandleUnackedPackets()
         }
-
         Log.i("ApollonProtocolHandler", "Initialized Protocol Handler with ID $userId")
     }
 
     fun Close() {
         storeUnacked()
-    }
-
-    private fun readFullLine(incoming : InputStream, timeout : Long) : String? {
-        try {
-            val payload = incoming.bufferedReader().readLine()
-//            val payload = runBlocking {
-//                withTimeoutOrNull(Duration.parse("1s")) {
-//                    val finalString = StringBuilder()
-//                    val bufRead = incoming.bufferedReader()
-//                    // TODO: Read all until delimiter and timeout
-////                    do {
-////                        val json = bufRead.readText()
-////                        finalString.append(json)
-////                    } while (!json.endsWith("\n") && !json.endsWith("\r\n"))
-//                    Log.i("ApollonProtocolHandler", "Starting to read string data")
-//                    val json = bufRead.readText()
-//                    finalString.append(json)
-//                    Log.i("ApollonProtocolHandler", "Finished reading protocol data")
-//                    bufRead.close()
-//                    finalString.toString()
-//                }
-//            }
-            return payload
-        } catch (ex : Exception) {
-            Log.i("ApollonProtocolHandler", "Failed to receive! $ex")
-            return null
-        }
     }
 
     // Main method for initial packet handling
@@ -182,13 +150,13 @@ object ApollonProtocolHandler {
                     }
                     ContactType.OPTION.type.toLong() -> {
                         // Differentiate further
-                        val payload = readFullLine(incomingStream, timeout) ?: return
+                        val payload = incomingStream.bufferedReader().readLine()
                         protocolScope.launch {
                             receiveContactOption(header, payload)
                         }
                     }
                     ContactType.CONTACT_INFO.type.toLong() -> {
-                        val payload = readFullLine(incomingStream, timeout) ?: return
+                        val payload = incomingStream.bufferedReader().readLine()
                         protocolScope.launch {
                             receiveContactInformation(header, payload)
                         }
@@ -339,7 +307,7 @@ object ApollonProtocolHandler {
             val mID = messageID.getAndAdd(1).toUInt()
             val header = Header(PacketCategories.DATA.cat.toByte(), DataType.TEXT.type.toByte(), userId, mID)
             val message = Message(to, getTimeMillis().toString(), text)
-            SendAny(header, message)
+            sendAny(header, message)
 
             // Adding the text into the message database
             protocolScope.launch {
@@ -366,7 +334,7 @@ object ApollonProtocolHandler {
             val create = Create(newUser.username)
             val mID = messageID.getAndAdd(1).toUInt()
             val header = Header(PacketCategories.CONTACT.cat.toByte(), ContactType.CREATE.type.toByte(), 0u, mID)
-            SendAny(header, create)
+            sendAny(header, create)
         } catch (ex : Exception) {
             Log.i("ApollonProtocolHandler", "Failed to send create account to server!\n$ex")
         }
@@ -377,7 +345,7 @@ object ApollonProtocolHandler {
             val search = Search(searchString)
             val mID = messageID.getAndAdd(1).toUInt()
             val header = Header(PacketCategories.CONTACT.cat.toByte(), ContactType.SEARCH.type.toByte(), userId, mID)
-            SendAny(header, search)
+            sendAny(header, search)
         } catch (ex : Exception) {
             Log.i("ApollonProtocolHandler", "Failed to send search to server!\n$ex")
         }
@@ -389,7 +357,7 @@ object ApollonProtocolHandler {
             val option = ContactOption(contactId, addOption)
             val mID = messageID.getAndAdd(1).toUInt()
             val header = Header(PacketCategories.CONTACT.cat.toByte(), ContactType.OPTION.type.toByte(), userId, mID)
-            SendAny(header, option)
+            sendAny(header, option)
         } catch (ex : Exception) {
             Log.i("ApollonProtocolHandler", "Failed to send search to server!\n$ex")
         }
@@ -403,26 +371,6 @@ object ApollonProtocolHandler {
     // ---------------------------------------------------
     // Private API
     // ---------------------------------------------------
-
-    private fun SendAny(header : Header, payload : Search) {
-        val rawPayload = ignoreUnknownJson.encodeToString(payload)
-        SendAny(header, rawPayload)
-    }
-
-    private fun SendAny(header : Header, payload : Create) {
-        val rawPayload = ignoreUnknownJson.encodeToString(payload)
-        SendAny(header, rawPayload)
-    }
-
-    private fun SendAny(header: Header, payload: Message) {
-        val rawPayload = ignoreUnknownJson.encodeToString(payload)
-        SendAny(header, rawPayload)
-    }
-
-    private fun SendAny(header: Header, payload: ContactOption) {
-        val rawPayload = ignoreUnknownJson.encodeToString(payload)
-        SendAny(header, rawPayload)
-    }
 
     @Serializable
     class StorageMessage(
@@ -439,8 +387,9 @@ object ApollonProtocolHandler {
     }
 
     // TODO: Divide visually from receive methods
-    private fun SendAny(header : Header, payload : String) {
+    private inline fun <reified T> sendAny(header : Header, content : T) {
         // Get the message ID of the packet to ack later
+        val payload = Json.encodeToString(content)
         val rawPayload = payload + "\n"
         val rawHeader = header.toByteArray()
         val packet = rawHeader + rawPayload.toByteArray(Charsets.UTF_8)
@@ -580,7 +529,7 @@ object ApollonProtocolHandler {
             val contactId = header.UserId
             // Flip the IDs and send back
             header.UserId = userId
-            SendAny(header, answer)
+            sendAny(header, answer)
 
             // Saving the new contact in the list of contacts
             val imageFile = File(imageFileDir, "${contactId}.png")
