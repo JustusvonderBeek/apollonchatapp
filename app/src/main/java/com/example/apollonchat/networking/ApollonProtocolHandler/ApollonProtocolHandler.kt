@@ -122,6 +122,7 @@ object ApollonProtocolHandler {
                         }
                         val sendCreate = Json.decodeFromString<Create>(matching)
                         val newUser = User(header.UserId.toLong(), sendCreate.Username, userImage = "drawable/ic_user")
+                        userId = header.UserId
 
                         protocolScope.launch {
                             insertUserIntoDatabase(newUser)
@@ -297,7 +298,7 @@ object ApollonProtocolHandler {
     }
 
     // TODO: Implement missing parts of the protocol
-    fun SendText(text : String, to : UInt) {
+    fun sendText(text : String, to : UInt) {
         try {
             if (text.contentEquals("")) {
                 Log.i("ApollonProtocolHandler", "Empty string \"\" to send. Returning")
@@ -326,7 +327,7 @@ object ApollonProtocolHandler {
 
     }
 
-    fun SendCreateAccount(newUser : User) {
+    fun sendCreateAccount(newUser : User) {
         try {
             if (newUser.username.isEmpty()) {
                 Log.i("ApollonProtocolHandler", "Cannot create user with empty name")
@@ -341,7 +342,7 @@ object ApollonProtocolHandler {
         }
     }
 
-    fun SendSearch(searchString: String) {
+    fun sendSearch(searchString: String) {
         try {
             val search = Search(searchString)
             val mID = messageID.getAndAdd(1).toUInt()
@@ -352,7 +353,7 @@ object ApollonProtocolHandler {
         }
     }
 
-    fun SendContactRequest(contactId : UInt) {
+    fun sendContactRequest(contactId : UInt) {
         try {
             val addOption = listOf(NetworkOption("Question", "Add"))
             val option = ContactOption(contactId, addOption)
@@ -381,13 +382,12 @@ object ApollonProtocolHandler {
         val JsonPacket : String,
         var Resend : Int
     ) {
-        fun IncreaseResend() {
+        fun increaseResend() {
             this.Resend = this.Resend + 1
             this.TimeSent = Calendar.getInstance().timeInMillis
         }
     }
 
-    // TODO: Divide visually from receive methods
     private inline fun <reified T> sendAny(header : Header, content : T) {
         // Get the message ID of the packet to ack later
         val payload = Json.encodeToString(content)
@@ -400,17 +400,17 @@ object ApollonProtocolHandler {
         Networking.write(packet)
     }
 
+    // ---------------------------------------------------
+    // Helping method
+    // ---------------------------------------------------
+
     private fun findMessageId(id : UInt) : String? {
         val packet = unackedPackets.find {
             it.MessageID == id
         } ?: return null
         return packet.JsonPacket
     }
-
-    // ---------------------------------------------------
-    // Helping method
-    // ---------------------------------------------------
-
+    
     private fun storeUnacked() {
         val outfile = File(imageFileDir, "unacked.json")
         val converted = Json.encodeToString(unackedPackets)
@@ -552,7 +552,7 @@ object ApollonProtocolHandler {
                             // Need to check for
                             Log.i("ApollonProtocolHandler", "Sending packet ${packet.MessageID} again...")
                             Networking.write(packet.RawPacket)
-                            packet.IncreaseResend()
+                            packet.increaseResend()
                         } else {
                             // Tried sending packet already 3 times. Remove?
                             // Depending on the packet type or try when internet becomes available again
