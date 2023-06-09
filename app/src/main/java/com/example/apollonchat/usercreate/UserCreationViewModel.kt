@@ -5,20 +5,11 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
 import com.example.apollonchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
-import com.example.apollonchat.networking.packets.Create
 import com.example.apollonchat.networking.Networking
-import com.example.apollonchat.networking.constants.ContactType
-import com.example.apollonchat.networking.constants.PacketCategories
 import kotlinx.coroutines.*
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
-import java.net.InetAddress
-import kotlin.random.Random
-import kotlin.random.nextUInt
 
 class UserCreationViewModel(val userDatabase : UserDatabaseDao, val application: Application) : ViewModel() {
 
@@ -68,7 +59,7 @@ class UserCreationViewModel(val userDatabase : UserDatabaseDao, val application:
         Log.i("UserCreationViewModel", "Creating a new user: $newUser")
 
         // First we need to obtain the ID from the server
-        ApollonProtocolHandler.SendCreateAccount(newUser)
+        ApollonProtocolHandler.sendCreateAccount(newUser)
         // Expecting the Network to signal the answer
         // Therefore disabling the creation button
         _clickable.value = false
