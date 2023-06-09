@@ -6,19 +6,12 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.apollonchat.database.contact.Contact
 import com.example.apollonchat.database.contact.ContactDatabaseDao
-import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
 import com.example.apollonchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
-import com.example.apollonchat.networking.Networking
-import com.example.apollonchat.networking.constants.ContactType
-import com.example.apollonchat.networking.constants.PacketCategories
 import com.example.apollonchat.networking.packets.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import java.net.InetAddress
-import kotlin.random.Random
-import kotlin.random.nextUInt
 
 
 // TODO: FIX this class
@@ -74,7 +67,7 @@ class AddContactViewModel(val userDatabase : UserDatabaseDao, val contactDatabas
     // TODO: Fix the search and move to protocol handler
     fun searchContacts() {
         if (contactName.value != "") {
-            ApollonProtocolHandler.SendSearch(contactName.value!!)
+            ApollonProtocolHandler.sendSearch(contactName.value!!)
             _hideKeyboard.value = true
         }
     }
@@ -138,7 +131,7 @@ class AddContactViewModel(val userDatabase : UserDatabaseDao, val contactDatabas
     // TODO: Move to protocol handler
     private suspend fun sendContactRequestToServer(contact: Contact) {
         withContext(Dispatchers.IO) {
-            ApollonProtocolHandler.SendContactRequest(contact.contactId.toUInt())
+            ApollonProtocolHandler.sendContactRequest(contact.contactId.toUInt())
         }
     }
 
