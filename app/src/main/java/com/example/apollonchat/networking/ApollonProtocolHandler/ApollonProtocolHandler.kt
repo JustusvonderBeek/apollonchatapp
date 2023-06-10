@@ -102,8 +102,9 @@ object ApollonProtocolHandler {
     }
 
     // Main method for initial packet handling
-    fun receiveAny(headerBuffer : ByteArray, incomingStream: InputStream) {
-        val header = Header.convertRawToHeader(headerBuffer) ?: return
+    fun receiveAny(packet : ByteArray, incomingStream : InputStream) {
+        val header = Header.convertRawToHeader(packet.sliceArray(0 until 10)) ?: return
+        val payload = if (packet.size > 10) packet.sliceArray(10 until packet.size).toString(Charsets.UTF_8) else null
         Log.i("ApollonProtocolHandler", "Header: $header")
         // We cannot always read payload, because of packets that don't have a payload
         when(PacketCategories.getFromByte(header.Category)) {
@@ -139,9 +140,13 @@ object ApollonProtocolHandler {
                         // We need to "clean" the pipe, so read anyways
                         Log.i("ApollonProtocolHandler", "Received Contacts...")
 //                        val payload = readFullLine(incomingStream, timeout) ?: return
-                        val payload = incomingStream.bufferedReader().readLine()
+//                        val payload = incomingStream.bufferedReader().readLine()
                         Log.i("ApollonProtocolHandler", "Showing the contacts via the callback")
                         if (contactsCallback != null) {
+                            if (payload == null) {
+                                Log.w("ApollonProtocolHandler", "No payload for contacts type was received!")
+                                return
+                            }
                             contactsCallback!!.invoke(payload)
                         }
                         // Clear the search that lead to this contact list
@@ -151,15 +156,23 @@ object ApollonProtocolHandler {
                     }
                     ContactType.OPTION -> {
                         // Differentiate further
-                        val payload = incomingStream.bufferedReader().readLine()
+//                        val payload = incomingStream.bufferedReader().readLine()
+                        if (payload == null) {
+                            Log.w("ApollonProtocolHandler", "No payload for contact option type was received!")
+                            return
+                        }
                         protocolScope.launch {
-                            receiveContactOption(header, payload)
+                            receiveContactOption(header, payload.toString())
                         }
                     }
                     ContactType.CONTACT_INFO -> {
-                        val payload = incomingStream.bufferedReader().readLine()
+//                        val payload = incomingStream.bufferedReader().readLine()
+                        if (payload == null) {
+                            Log.w("ApollonProtocolHandler", "No payload for contact option type was received!")
+                            return
+                        }
                         protocolScope.launch {
-                            receiveContactInformation(header, payload)
+                            receiveContactInformation(header, payload.toString())
                         }
                     }
                     ContactType.CONTACT_ACK -> {
@@ -179,16 +192,20 @@ object ApollonProtocolHandler {
                     DataType.TEXT ->  {
                         // Receive only payload and then free the stream to continue receiving
 //                        val payload = readFullLine(incomingStream, timeout) ?: return
-                        val payload = incomingStream.bufferedReader().readLine()
+//                        val payload = incomingStream.bufferedReader().readLine()
+                        if (payload == null) {
+                            Log.w("ApollonProtocolHandler", "No payload for text was received!")
+                            return
+                        }
                         Log.i("ApollonProtocolHandler", "Received text")
                         protocolScope.launch {
-                            receiveTextMessage(header, payload)
+                            receiveTextMessage(header, payload.toString())
                         }
                     }
                     DataType.TEXT_ACK -> {
                         // Extract the messageID that was acked
                         // empty the stream for now
-                        incomingStream.bufferedReader().readLine()
+//                        incomingStream.bufferedReader().readLine()
                         val ackedID = header.MessageId
                         Log.i("ApollonProtocolHandler", "Got TextAck for $ackedID")
                         unackedPackets.removeIf {
@@ -196,8 +213,12 @@ object ApollonProtocolHandler {
                         }
                     }
                     DataType.FILE_INFO -> {
-                        val payload = incomingStream.bufferedReader().readLine()
-                        val fileInfo = Json.decodeFromString<FileInfo>(payload)
+//                        val payload = incomingStream.bufferedReader().readLine()
+                        if (payload == null) {
+                            Log.w("ApollonProtocolHandler", "No payload for file info type was received!")
+                            return
+                        }
+                        val fileInfo = Json.decodeFromString<FileInfo>(payload.toString())
                         Log.i("ApollonProtocolHandler", "Received File Information")
                         // Check for existing file information (skip for now)
                         val fileHave = FileHave(0)
@@ -207,8 +228,12 @@ object ApollonProtocolHandler {
                         Networking.write(haveHeader.toByteArray() + rawPacket)
                     }
                     DataType.FILE_HAVE -> {
-                        val payload = incomingStream.bufferedReader().readLine()
-                        val fileHave = Json.decodeFromString<FileHave>(payload)
+//                        val payload = incomingStream.bufferedReader().readLine()
+                        if (payload == null) {
+                            Log.w("ApollonProtocolHandler", "No payload for file have type was received!")
+                            return
+                        }
+                        val fileHave = Json.decodeFromString<FileHave>(payload.toString())
 
                         val sfileInfo = findMessageId(header.MessageId)
                         if (sfileInfo == null) {
@@ -233,7 +258,7 @@ object ApollonProtocolHandler {
                         val buffer = ByteArray(fileInfo.CompressedLength.toInt())
                         var read = incomingStream.read(buffer)
                         if (read < buffer.size) {
-                            read = incomingStream.read(buffer, read, buffer.size-read)
+//                            read = incomingStream.read(buffer, read, buffer.size-read)
                         }
                         // Decompress the image
                         val decompress = ByteArray(fileInfo.FileLength.toInt())
@@ -582,7 +607,7 @@ object ApollonProtocolHandler {
         withContext(Dispatchers.IO) {
             val mId = messageID.getAndAdd(1).toUInt()
             val login = Header(PacketCategories.CONTACT.cat.toByte(), ContactType.LOGIN.type.toByte(), userId, mId)
-            val packet = login.toByteArray()
+            val packet = login.toByteArray() + "\n".toByteArray()
             Networking.write(packet)
         }
     }
