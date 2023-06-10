@@ -8,6 +8,7 @@ import com.example.apollonchat.networking.certificate.ApollonNetworkConfigCreato
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.network.tls.*
+import io.ktor.util.hex
 import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -27,8 +28,8 @@ object Networking {
         var headerSize : Int,
         var secure : Boolean,
     ) {
-//        constructor() : this("homecloud.homeplex.org", 10, true)
-        constructor() : this("10.0.2.2", 10, false)
+        constructor() : this("homecloud.homeplex.org", 10, true)
+//        constructor() : this("10.0.2.2", 10, false)
     }
 
     /*
@@ -240,15 +241,43 @@ object Networking {
             try {
                 val recChannel = socket!!.openReadChannel().toInputStream()
                 val headerBuffer = ByteArray(headerSize)
+//                val nextByte = ByteArray(1)
+//                val packetList = mutableListOf<Byte>()
                 while(true) {
                     var read = recChannel.read(headerBuffer, 0, headerSize)
                     while(read < headerSize) {
                         read = recChannel.read(headerBuffer, read, headerSize - read)
                     }
+                    val payload = recChannel.bufferedReader(Charsets.UTF_8).readLine()
+
+                    if (payload == null) {
+                        Log.i("Networking", "Remote was closed!")
+                        return@withContext
+                    }
+
+                    var packet = headerBuffer
+                    if (!payload.equals("\n"))
+                        packet += payload.toByteArray(Charsets.UTF_8)
+
+//                    var bytesRead: Int
+//                    while (true) {
+//                        bytesRead = recChannel.read(nextByte)
+//                        if (bytesRead == -1) {
+//                            Log.i("Networking", "Remote was closed!")
+//                            return@withContext
+//                        }
+//                        if (nextByte[0] == 0x0A.toByte())
+//                            break
+//                        packetList.add(nextByte[0])
+//                    }
+//                    val fullPacket = recChannel.bufferedReader(Charsets.UTF_8).readLine()
+//                    Log.i("Networking", "Received: $fullPacket")
+
+//                    Log.i("Networking", "Received packet: ${hex(packetList.toByteArray())}")
 
                     // TODO: Clean this mess up
                     // Either this one line or the callback. Check what is faster
-                    ApollonProtocolHandler.receiveAny(headerBuffer, recChannel)
+                    ApollonProtocolHandler.receiveAny(packet, recChannel)
 //                    defaultCallback[0].invoke(headerBuffer, recChannel)
 //                    defaultCallback[0].invoke(packetBuffer, recChannel)
                 }
