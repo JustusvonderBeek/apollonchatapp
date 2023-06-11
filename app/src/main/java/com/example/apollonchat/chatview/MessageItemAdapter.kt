@@ -3,6 +3,9 @@ package com.example.apollonchat.chatview
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Shader
+import android.graphics.drawable.GradientDrawable
 import android.print.PrintAttributes.Margins
 import android.util.Log
 import android.view.LayoutInflater
@@ -91,13 +94,15 @@ fun bindCardViewStyle(view : CardView, own : Boolean) {
         val lParams = view.layoutParams as MarginLayoutParams
         lParams.setMargins(30, 16, 120, 0)
         // Need to resolve the color instead of passing a reference
-        val background = ContextCompat.getColor(view.context, R.color.apollon_green)
-        view.setCardBackgroundColor(background)
+//        val background = ContextCompat.getColor(view.context, R.color.apollon_green)
+//        view.setCardBackgroundColor(background)
+        view.background = ContextCompat.getDrawable(view.context, R.drawable.own_message_gradient)
     } else {
         val lParams = view.layoutParams as MarginLayoutParams
         lParams.setMargins(120, 16, 30, 0)
-        val background = ContextCompat.getColor(view.context, R.color.apollon_green_bright)
-        view.setCardBackgroundColor(background)
+//        val background = ContextCompat.getColor(view.context, R.color.apollon_green_bright)
+//        view.setCardBackgroundColor(background)
+        view.background = ContextCompat.getDrawable(view.context, R.drawable.remote_message_gradient)
     }
     view.requestLayout()
 }
