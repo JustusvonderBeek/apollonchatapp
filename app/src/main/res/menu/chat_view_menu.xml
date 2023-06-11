@@ -7,4 +7,9 @@
         android:title="Contact Information"
         app:showAsAction="never"
         />
+    <item
+        android:id="@+id/removeUserAction"
+        android:title="Remove this Contact"
+        app:showAsAction="ifRoom|withText"
+        />
 </menu>
