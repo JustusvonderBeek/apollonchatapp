@@ -3,8 +3,8 @@
     android:shape="rectangle">
     <gradient
         android:angle="-45"
-        android:startColor="@color/apollon_green_bright"
-        android:endColor="@color/apollon_green_brighter"
+        android:startColor="?attr/colorSecondary"
+        android:endColor="?attr/colorSecondaryVariant"
         android:type="linear"
         />
     <corners
