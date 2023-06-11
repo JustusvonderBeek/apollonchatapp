@@ -23,6 +23,7 @@ import com.example.apollonchat.database.ApollonDatabase
 import com.example.apollonchat.databinding.FragmentChatViewBinding
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.MenuProvider
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.fragment.findNavController
 import com.example.apollonchat.chatlist.ChatListFragmentDirections
 
@@ -49,6 +50,10 @@ class ChatViewFragment : Fragment(), MenuProvider {
                 viewModel.showContactInformation()
                 return true
             }
+            R.id.removeUserAction -> {
+                viewModel.removeUser()
+                return true
+            }
         }
         return false
     }
@@ -60,6 +65,9 @@ class ChatViewFragment : Fragment(), MenuProvider {
     ): View? {
 
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_chat_view, container, false)
+
+        // Creating the dropdown menu in the toolbar
+        requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
 
         val application = requireNotNull(this.activity).application
         val dataSource = ApollonDatabase.getInstance(application).contactDao()
