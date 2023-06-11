@@ -77,6 +77,11 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
         Log.i("ChatViewViewModel", "Showing contact information...")
     }
 
+    fun removeUser() {
+        Log.i("ChatViewViewModel", "Removing the user $contactID")
+        _contact.value?.let { removeContact(it) }
+    }
+
     fun hideKeyboardDone() {
         _hideKeyboard.value = false
     }
@@ -133,6 +138,12 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
         }
     }
 
+    private fun removeContact(contact: Contact) {
+        uiScope.launch {
+            removeContactFromDatabase(contact)
+        }
+    }
+
     private suspend fun loadContactFromDatabase(contactID: Long) : Contact {
         val contact = withContext(Dispatchers.IO) {
             val chatContact = contactDatabase.getContact(contactID) ?: throw IOException("User $contactID not found!")
@@ -144,6 +155,12 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
     private suspend fun updateContactInDatabase(contact : Contact) {
         withContext(Dispatchers.IO) {
             contactDatabase.updateContact(contact)
+        }
+    }
+
+    private suspend fun removeContactFromDatabase(contact: Contact) {
+        withContext(Dispatchers.IO) {
+            contactDatabase.deleteContact(contact.contactId)
         }
     }
 
