@@ -56,6 +56,7 @@ object ApollonProtocolHandler {
     private var unackedPackets : MutableList<StorageMessage> = ArrayList()
     // TODO: What is this for?
     private var unhandledPackets : MutableList<ByteArray> = ArrayList()
+    private var loggedIn : Boolean = false
     private var ignoreUnknownJson = Json { ignoreUnknownKeys = true }
     private var imageFileDir : String? = null
     private var user : User? = null
@@ -604,11 +605,16 @@ object ApollonProtocolHandler {
     }
 
     private suspend fun login() {
+        if (loggedIn) {
+            Log.i("ApollonProtocolHandler", "Already logged in")
+            return
+        }
         withContext(Dispatchers.IO) {
             val mId = messageID.getAndAdd(1).toUInt()
             val login = Header(PacketCategories.CONTACT.cat.toByte(), ContactType.LOGIN.type.toByte(), userId, mId)
             val packet = login.toByteArray() + "\n".toByteArray()
             Networking.write(packet)
+            loggedIn = true
         }
     }
 
