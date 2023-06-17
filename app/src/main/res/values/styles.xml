@@ -56,7 +56,7 @@
         <item name="android:lineSpacingExtra">2sp</item>
     </style>
     <style name="RoundButton" parent="Widget.MaterialComponents.Button">
-        <item name="backgroundTint">@color/apollon_green</item>
+        <item name="backgroundTint">?attr/colorPrimary</item>
         <item name="android:textColor">@color/white</item>
         <item name="fontFamily">sans-serif-black</item>
         <item name="android:textSize">16sp</item>
