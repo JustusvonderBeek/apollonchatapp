@@ -83,7 +83,7 @@ class MainActivity : AppCompatActivity() {
                 // for ActivityCompat#requestPermissions for more details.
                 return
             }
-            notify(1, builder.build())
+//            notify(1, builder.build())
         }
     }
 
