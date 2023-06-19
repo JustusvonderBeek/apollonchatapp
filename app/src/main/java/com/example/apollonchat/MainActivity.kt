@@ -52,9 +52,6 @@ class MainActivity : AppCompatActivity() {
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration)
 
         // Starting the networking service here since it will be used throughout the whole app
-        val networkConfig = Networking.Configuration()
-        Networking.initialize(networkConfig)
-        Networking.start(applicationContext)
         // TODO: Loading the newly created user
         val userId = runBlocking {
             loadUser()
