@@ -4,22 +4,23 @@ import android.content.Context
 import android.util.Log
 import com.example.apollonchat.R
 import com.example.apollonchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
+import com.example.apollonchat.networking.Networking.toHexString
 import com.example.apollonchat.networking.certificate.ApollonNetworkConfigCreator
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.network.tls.*
-import io.ktor.util.hex
+import io.ktor.util.cio.toByteReadChannel
 import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.produce
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Semaphore
 import java.io.IOException
-import java.io.InputStream
-import java.net.Inet4Address
 import java.net.InetAddress
-import java.util.Hashtable
 import kotlin.concurrent.thread
-import kotlin.reflect.KSuspendFunction2
 
 object Networking {
 
@@ -28,8 +29,8 @@ object Networking {
         var headerSize : Int,
         var secure : Boolean,
     ) {
-        constructor() : this("homecloud.homeplex.org", 10, true)
-//        constructor() : this("10.0.2.2", 10, false)
+//        constructor() : this("homecloud.homeplex.org", 10, true)
+        constructor() : this("10.0.2.2", 10, false)
     }
 
     /*
@@ -68,18 +69,22 @@ object Networking {
     private var connectSecure : Boolean = false
     private var headerSize : Int = 10
 
+    // Runtime and reception
+    private var receiveChannel : Channel<ByteArray>? = null
+
     /*
     ----------------------------------------------------------------
     Public API
     ----------------------------------------------------------------
     */
 
-    fun initialize(configuration : Configuration) {
+    fun initialize(configuration : Configuration, chan : Channel<ByteArray>) {
         if (!init) {
             remoteAddress = configuration.remote
             connectSecure = configuration.secure
             remotePort = if (connectSecure) 50001 else 50000
             headerSize = configuration.headerSize
+            receiveChannel = chan
             init = true
         }
     }
@@ -97,13 +102,6 @@ object Networking {
             sending = thread {
                 runBlocking {
                     startSending()
-                }
-            }
-        }
-        if (receiving == null) {
-            receiving = thread {
-                runBlocking {
-                    startListening()
                 }
             }
         }
@@ -226,72 +224,62 @@ object Networking {
         sending = null
     }
 
-    // TODO: Combine with possible handling method to allow for my protocol
-//     including size of header field to be expected
-     private suspend fun startListening() {
-        if (receiving != null && receiving!!.isAlive) {
-            if (receiving != Thread.currentThread()) {
-                Log.i("Networking", "Already receiving")
-                return
-            }
-        }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun CoroutineScope.receivePackets() : ReceiveChannel<ByteArray> = produce {
         initBarrier.acquire()
-        Log.i("Networking", "Starting to receive...")
-        val con = withContext(Dispatchers.IO) {
-            try {
-                val recChannel = socket!!.openReadChannel().toInputStream()
-                val headerBuffer = ByteArray(headerSize)
-//                val nextByte = ByteArray(1)
-//                val packetList = mutableListOf<Byte>()
-                while(true) {
-                    var read = recChannel.read(headerBuffer, 0, headerSize)
-                    while(read < headerSize) {
-                        read = recChannel.read(headerBuffer, read, headerSize - read)
-                    }
-                    val payload = recChannel.bufferedReader(Charsets.UTF_8).readLine()
+        val readBuffer = ByteArray(100)
+        val headerBuffer = ByteArray(headerSize)
+        val recChannel = socket!!.openReadChannel().toInputStream()
+        val payloadReader = recChannel.bufferedReader(Charsets.UTF_8)
 
-                    if (payload == null) {
-                        Log.i("Networking", "Remote was closed!")
-                        return@withContext
-                    }
+        withContext(Dispatchers.IO) {
+            while(true) {
+                val read = recChannel.read(readBuffer, 0, readBuffer.size - 1)
 
-                    var packet = headerBuffer
-                    if (!payload.equals("\n"))
-                        packet += payload.toByteArray(Charsets.UTF_8)
-
-//                    var bytesRead: Int
-//                    while (true) {
-//                        bytesRead = recChannel.read(nextByte)
-//                        if (bytesRead == -1) {
-//                            Log.i("Networking", "Remote was closed!")
-//                            return@withContext
-//                        }
-//                        if (nextByte[0] == 0x0A.toByte())
-//                            break
-//                        packetList.add(nextByte[0])
-//                    }
-//                    val fullPacket = recChannel.bufferedReader(Charsets.UTF_8).readLine()
-//                    Log.i("Networking", "Received: $fullPacket")
-
-//                    Log.i("Networking", "Received packet: ${hex(packetList.toByteArray())}")
-
-                    // TODO: Clean this mess up
-                    // Either this one line or the callback. Check what is faster
-                    ApollonProtocolHandler.receiveAny(packet, recChannel)
-//                    defaultCallback[0].invoke(headerBuffer, recChannel)
-//                    defaultCallback[0].invoke(packetBuffer, recChannel)
+                if (read == 0) {
+                    Log.i("Networking", "Remote endpoint closed connection")
+                    return@withContext
                 }
-            } catch (ex : NullPointerException) {
-                Log.i("Networking", "Failed to get read channel for remote: ${ex.printStackTrace()}")
-            } catch (ex : IOException) {
-                Log.i("Networking", "Failed to read from remote")
-            } catch (ex : Exception) {
-                Log.i("Networking", "Some error: $ex")
-                return@withContext
+
+//                // Checking if the data that was read can be sent "produce"
+//                if (read == 11 && readBuffer[10] == 0x0A.toByte()) {
+//                    send(readBuffer.sliceArray(0..10))
+//                }
+//
+//                var read = recChannel.read(headerBuffer, 0, headerSize)
+//                while(read < headerSize) {
+//                    read += recChannel.read(headerBuffer, read, headerSize - read)
+//                }
+//
+//                read = recChannel.read(nextByte, 0, 1)
+////                val nextByte = byteReader.readByte()
+//                Log.d("Networking", "Next Byte: ${nextByte.toHexString()}")
+//                if (nextByte[0] == 0x0a.toByte()) {
+//                    Log.d("Networking", "Got end of packet")
+//                    send(headerBuffer)
+//                    continue
+//                }
+//
+//                Log.i("Networking", "Waiting for rest of packets...")
+//
+//                val payload = payloadReader.readLine()
+//                if (payload == null) {
+//                    Log.i("Networking", "Remote was closed!")
+//                    return@withContext
+//                }
+//
+//                val packet = if (payload.length > 1) {
+//                    val fullP = headerBuffer + nextByte[0] + payload.toByteArray(Charsets.UTF_8)
+//                    fullP
+//                } else {
+//                    headerBuffer
+//                }
+//                Log.d("Networking", "Received header: ${headerBuffer.toHexString()}")
+//                Log.d("Networking", "Received payload: ${payload.toByteArray(Charsets.UTF_8).toHexString()}")
+
+//                Log.d("Networking", "Posting packet: ${packet.toHexString()}")
+                send(readBuffer.sliceArray(0 until read))
             }
         }
-        initBarrier.release()
-        this.receiving = null
     }
-
 }
