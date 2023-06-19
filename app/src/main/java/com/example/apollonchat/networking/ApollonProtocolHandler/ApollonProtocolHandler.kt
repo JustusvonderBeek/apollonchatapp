@@ -11,6 +11,7 @@ import com.example.apollonchat.database.message.MessageDao
 import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
 import com.example.apollonchat.networking.Networking
+import com.example.apollonchat.networking.Networking.receivePackets
 import com.example.apollonchat.networking.constants.ContactType
 import com.example.apollonchat.networking.constants.DataType
 import com.example.apollonchat.networking.constants.PacketCategories
@@ -27,8 +28,15 @@ import com.github.luben.zstd.Zstd
 import io.ktor.util.date.getTimeMillis
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.produce
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -39,6 +47,7 @@ import java.io.InputStream
 import java.time.LocalDateTime
 import java.util.Calendar
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.thread
 import kotlin.random.Random
 
 /*
@@ -56,6 +65,7 @@ object ApollonProtocolHandler {
     private var unackedPackets : MutableList<StorageMessage> = ArrayList()
     // TODO: What is this for?
     private var unhandledPackets : MutableList<ByteArray> = ArrayList()
+    private var incomingPackets : Channel<ByteArray> = Channel(50)
     private var loggedIn : Boolean = false
     private var ignoreUnknownJson = Json { ignoreUnknownKeys = true }
     private var imageFileDir : String? = null
@@ -85,10 +95,20 @@ object ApollonProtocolHandler {
         messageDatabase = database.messageDao()
         this.userId = userId
 
+        val networkConfig = Networking.Configuration()
+        Networking.initialize(networkConfig, incomingPackets)
+        Networking.start(context)
+
         if (userId == 0u) {
             Log.i("ApollonProtocolHandler", "Initialized Protocol Handler with ID $userId")
             return
         }
+        thread {
+            runBlocking {
+                listenReceiveChannel()
+            }
+        }
+
         protocolScope.launch {
             login()
         }
@@ -103,10 +123,10 @@ object ApollonProtocolHandler {
     }
 
     // Main method for initial packet handling
-    fun receiveAny(packet : ByteArray, incomingStream : InputStream) {
+    fun receiveAny(packet : ByteArray) {
         val header = Header.convertRawToHeader(packet.sliceArray(0 until 10)) ?: return
         val payload = if (packet.size > 10) packet.sliceArray(10 until packet.size).toString(Charsets.UTF_8) else null
-        Log.i("ApollonProtocolHandler", "Header: $header")
+        Log.i("ApollonProtocolHandler", "Handling packet with Header: $header")
         // We cannot always read payload, because of packets that don't have a payload
         when(PacketCategories.getFromByte(header.Category)) {
             PacketCategories.CONTACT -> {
@@ -257,10 +277,10 @@ object ApollonProtocolHandler {
                         val fileInfo = Json.decodeFromString<FileInfo>(sfileInfo)
                         // Receive the full file and store it
                         val buffer = ByteArray(fileInfo.CompressedLength.toInt())
-                        var read = incomingStream.read(buffer)
-                        if (read < buffer.size) {
-//                            read = incomingStream.read(buffer, read, buffer.size-read)
-                        }
+//                        var read = incomingStream.read(buffer)
+//                        if (read < buffer.size) {
+////                            read = incomingStream.read(buffer, read, buffer.size-read)
+//                        }
                         // Decompress the image
                         val decompress = ByteArray(fileInfo.FileLength.toInt())
                         if (fileInfo.Compression == "ZSTD") {
@@ -291,6 +311,7 @@ object ApollonProtocolHandler {
             }
             else -> {
                 Log.i("ApollonProtocolHandler", "Got incorrect packet category (${header.Category}")
+                Log.d("ApollonProtocolHandler", "Packet: ${packet.toHexString()}")
                 // Skip this packet
             }
         }
@@ -424,6 +445,42 @@ object ApollonProtocolHandler {
         val store = StorageMessage(header.MessageId, Calendar.getInstance().timeInMillis, packet, payload, 0)
         unackedPackets.add(store)
         Networking.write(packet)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun CoroutineScope.convertBytesToPacket(source : ReceiveChannel<ByteArray>) : ReceiveChannel<ByteArray> = produce {
+        val nextPacket = mutableListOf<Byte>()
+        while (true) {
+            for (byte in source.receive()) {
+                if (byte != 0x0a.toByte())
+                    nextPacket.add(byte)
+                else {
+                    val packet = nextPacket.toByteArray()
+                    send(packet)
+                    nextPacket.clear()
+                }
+            }
+        }
+    }
+
+    private suspend fun listenReceiveChannel() {
+        Log.i("ApollonProtocolHandler", "Starting protocol listening")
+        withContext(Dispatchers.IO) {
+            try {
+                val produce = receivePackets()
+                val packets = convertBytesToPacket(produce)
+                runBlocking {
+                    while (true) {
+                        val packet = packets.receive()
+
+//                        Log.i("ApollonProtocolHandler", "Received packet!")
+                        receiveAny(packet)
+                    }
+                }
+            } catch (ex : Exception) {
+                Log.i("ApollonProtocolHandler", "Failed to receive packets! $ex")
+            }
+        }
     }
 
     // ---------------------------------------------------
@@ -623,5 +680,8 @@ object ApollonProtocolHandler {
     // ---------------------------------------------------
 
     private fun Int.to2ByteArray() : ByteArray = byteArrayOf(shr(8).toByte(), toByte())
+
+    private fun ByteArray.toHexString() = joinToString("") { "%02x".format(it) }
+
 
 }
