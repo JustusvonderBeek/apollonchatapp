@@ -5,6 +5,13 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.paging.PagedList
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import androidx.paging.toLiveData
 import com.example.apollonchat.database.contact.Contact
 import com.example.apollonchat.database.contact.ContactDatabaseDao
 import com.example.apollonchat.database.message.DisplayMessage
@@ -13,6 +20,9 @@ import com.example.apollonchat.database.user.User
 import com.example.apollonchat.database.user.UserDatabaseDao
 import com.example.apollonchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.count
+import kotlinx.coroutines.flow.map
 import java.io.File
 import java.io.IOException
 
@@ -27,9 +37,18 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
         get() = _contact
 
     // Used to display messages in the fragment
-    private val _messages = messageDatabase.getMessagesLive(contactID)
-    val messages : LiveData<MutableList<DisplayMessage>>
-        get() = _messages
+    private val _messages = messageDatabase.messagesByID(contactID)
+    val messages : Flow<PagingData<DisplayMessage>> = Pager(
+        config = PagingConfig(
+            pageSize = 50,
+            enablePlaceholders = false,
+            maxSize = 300,
+        )
+    ) {
+        messageDatabase.messagesByID(contactID)
+    }.flow.map {
+        it
+    }.cachedIn(viewModelScope)
 
     private val _lastOnline = MutableLiveData("Last Online: Never")
     val lastOnline : LiveData<String>
@@ -108,7 +127,7 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
 //    }
 
     fun ScrollBottom() {
-        this._scroll.value = messages.value?.let { it.size - 1 }
+//        this._scroll.value = messages.count()?.let { it.size - 1 }
     }
 
     fun ScrolledBottom() {
