@@ -29,8 +29,8 @@ object Networking {
         var headerSize : Int,
         var secure : Boolean,
     ) {
-//        constructor() : this("homecloud.homeplex.org", 10, true)
-        constructor() : this("10.0.2.2", 10, false)
+        constructor() : this("homecloud.homeplex.org", 10, true)
+//        constructor() : this("10.0.2.2", 10, false)
     }
 
     /*
@@ -97,6 +97,7 @@ object Networking {
         // Connecting to the endpoint
         connect(context)
 
+        // TODO: Move to same producer consumer pattern?
         // Then starting to send and receiver
         if (sending == null) {
             sending = thread {
@@ -227,58 +228,21 @@ object Networking {
     @OptIn(ExperimentalCoroutinesApi::class)
     fun CoroutineScope.receivePackets() : ReceiveChannel<ByteArray> = produce {
         initBarrier.acquire()
+        Log.i("Networking", "Starting receive...")
         val readBuffer = ByteArray(100)
-        val headerBuffer = ByteArray(headerSize)
         val recChannel = socket!!.openReadChannel().toInputStream()
-        val payloadReader = recChannel.bufferedReader(Charsets.UTF_8)
 
         withContext(Dispatchers.IO) {
             while(true) {
                 val read = recChannel.read(readBuffer, 0, readBuffer.size - 1)
-
+//                val read = recChannel.readBytes()
                 if (read == 0) {
                     Log.i("Networking", "Remote endpoint closed connection")
                     return@withContext
                 }
 
-//                // Checking if the data that was read can be sent "produce"
-//                if (read == 11 && readBuffer[10] == 0x0A.toByte()) {
-//                    send(readBuffer.sliceArray(0..10))
-//                }
-//
-//                var read = recChannel.read(headerBuffer, 0, headerSize)
-//                while(read < headerSize) {
-//                    read += recChannel.read(headerBuffer, read, headerSize - read)
-//                }
-//
-//                read = recChannel.read(nextByte, 0, 1)
-////                val nextByte = byteReader.readByte()
-//                Log.d("Networking", "Next Byte: ${nextByte.toHexString()}")
-//                if (nextByte[0] == 0x0a.toByte()) {
-//                    Log.d("Networking", "Got end of packet")
-//                    send(headerBuffer)
-//                    continue
-//                }
-//
-//                Log.i("Networking", "Waiting for rest of packets...")
-//
-//                val payload = payloadReader.readLine()
-//                if (payload == null) {
-//                    Log.i("Networking", "Remote was closed!")
-//                    return@withContext
-//                }
-//
-//                val packet = if (payload.length > 1) {
-//                    val fullP = headerBuffer + nextByte[0] + payload.toByteArray(Charsets.UTF_8)
-//                    fullP
-//                } else {
-//                    headerBuffer
-//                }
-//                Log.d("Networking", "Received header: ${headerBuffer.toHexString()}")
-//                Log.d("Networking", "Received payload: ${payload.toByteArray(Charsets.UTF_8).toHexString()}")
-
-//                Log.d("Networking", "Posting packet: ${packet.toHexString()}")
                 send(readBuffer.sliceArray(0 until read))
+//                send(read)
             }
         }
     }
