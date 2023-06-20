@@ -24,8 +24,11 @@ import com.example.apollonchat.databinding.FragmentChatViewBinding
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.MenuProvider
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.apollonchat.chatlist.ChatListFragmentDirections
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 class ChatViewFragment : Fragment(), MenuProvider {
     private lateinit var viewModel : ChatViewViewModel
@@ -70,25 +73,18 @@ class ChatViewFragment : Fragment(), MenuProvider {
         requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
 
         val application = requireNotNull(this.activity).application
-        val dataSource = ApollonDatabase.getInstance(application).contactDao()
-        val uDataSource = ApollonDatabase.getInstance(application).userDao()
-        val mDataSource = ApollonDatabase.getInstance(application).messageDao()
-
-        viewModelFactory = ChatViewViewModelFactory(args.contactID, dataSource, uDataSource, mDataSource, application)
+        viewModelFactory = ChatViewViewModelFactory(args.contactID, application)
         // We don't want the view model to survive navigate up. Therefore using "this"
         viewModel = ViewModelProvider(this, viewModelFactory)[ChatViewViewModel::class.java]
         binding.chatViewViewModel = viewModel
         binding.lifecycleOwner = requireActivity()
 
-        val adapter = MessageItemAdapter(requireContext())
+        val adapter = MessageItemAdapter()
         binding.messageView.adapter = adapter
 
-        viewModel.messages.observe(viewLifecycleOwner, Observer { messages ->
-            messages?.let {
-                adapter.submitList(messages)
-                viewModel.ScrollBottom()
-            }
-        })
+        lifecycleScope.launch {
+            viewModel.messages.collectLatest { adapter.submitData(it) }
+        }
 
         viewModel.hideKeyboard.observe(viewLifecycleOwner, Observer {hide ->
             if(hide) {
