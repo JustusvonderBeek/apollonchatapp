@@ -99,14 +99,15 @@ object ApollonProtocolHandler {
         Networking.initialize(networkConfig, incomingPackets)
         Networking.start(context)
 
-        if (userId == 0u) {
-            Log.i("ApollonProtocolHandler", "Initialized Protocol Handler with ID $userId")
-            return
-        }
         thread {
             runBlocking {
                 listenReceiveChannel()
             }
+        }
+
+        if (userId == 0u) {
+            Log.i("ApollonProtocolHandler", "Initialized Protocol Handler with ID $userId")
+            return
         }
 
         protocolScope.launch {
