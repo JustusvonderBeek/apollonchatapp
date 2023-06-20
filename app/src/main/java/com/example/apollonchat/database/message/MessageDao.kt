@@ -1,6 +1,8 @@
 package com.example.apollonchat.database.message
 
 import androidx.lifecycle.LiveData
+import androidx.paging.DataSource
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
@@ -26,6 +28,9 @@ interface MessageDao {
 
     @Query("SELECT * FROM message_table WHERE contactId = :contactId ORDER BY messageId ASC")
     fun getMessagesLive(contactId : Long) : LiveData<MutableList<DisplayMessage>>
+
+    @Query("SELECT * FROM message_table WHERE contactId = :contactId ORDER BY messageId ASC")
+    fun messagesByID(contactId : Long) : PagingSource<Int, DisplayMessage>
 
     @Query("SELECT * FROM message_table WHERE contactId = :contactId ORDER BY messageId ASC")
     fun getMessages(contactId : Long) : MutableList<DisplayMessage>?
