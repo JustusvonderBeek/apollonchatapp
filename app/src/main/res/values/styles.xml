@@ -33,7 +33,7 @@
     </style>
     <style name="SimpleButton" parent="ThemeOverlay.AppCompat">
         <item name="backgroundTint">@android:color/white</item>
-        <item name="android:textColor">@color/apollon_green</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
         <item name="fontFamily">sans-serif-black</item>
         <item name="android:textSize">18sp</item>
         <item name="android:textAlignment">center</item>
