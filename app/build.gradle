@@ -50,6 +50,8 @@ dependencies {
     kapt 'androidx.room:room-compiler:2.5.0'
     implementation 'androidx.room:room-ktx:2.5.0'
     implementation 'com.google.code.gson:gson:2.9.0'
+    implementation "androidx.paging:paging-runtime:3.1.1"
+    implementation "androidx.room:room-paging:2.5.1"
 
     // Core and other stuff
     implementation 'androidx.core:core-ktx:1.9.0'
