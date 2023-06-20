@@ -20,6 +20,7 @@ import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.core.view.marginLeft
 import androidx.databinding.BindingAdapter
+import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -30,10 +31,10 @@ import com.example.apollonchat.database.message.DisplayMessage
 import com.example.apollonchat.databinding.ChatMessageItemBinding
 import com.example.apollonchat.databinding.ListItemUserBinding
 
-class MessageItemAdapter(private val context : Context) : ListAdapter<DisplayMessage, MessageItemAdapter.MessageViewHolder>(MessageViewHolder.MessageItemDiffCallback()) {
+class MessageItemAdapter() : PagingDataAdapter<DisplayMessage, MessageItemAdapter.MessageViewHolder>(MessageViewHolder.MessageItemDiffCallback()) {
 
     override fun onBindViewHolder(holder: MessageViewHolder, position: Int) {
-        holder.bind(getItem(position), context)
+        holder.bind(getItem(position))
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MessageViewHolder {
@@ -42,10 +43,12 @@ class MessageItemAdapter(private val context : Context) : ListAdapter<DisplayMes
 
     class MessageViewHolder private constructor(val binding : ChatMessageItemBinding) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item : DisplayMessage, context: Context) {
-            binding.message = item
+        fun bind(item : DisplayMessage?) {
+            item.let {
+                binding.message = item
 //            binding.margin = Margins(8, 8, 8, 0)
-            binding.executePendingBindings()
+                binding.executePendingBindings()
+            }
         }
 
         companion object {
