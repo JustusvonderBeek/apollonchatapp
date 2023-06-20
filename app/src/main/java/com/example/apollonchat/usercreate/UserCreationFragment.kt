@@ -58,13 +58,11 @@ class UserCreationFragment : Fragment(), MenuProvider {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_user_creation, container, false)
 
         val application = requireNotNull(this.activity).application
-        val dataSource = ApollonDatabase.getInstance(application).userDao()
-
-        viewModelFactory = UserCreationViewModelFactory(dataSource, application)
+        viewModelFactory = UserCreationViewModelFactory(application)
         viewModel = ViewModelProvider(this, viewModelFactory)[UserCreationViewModel::class.java]
 
         binding.userCreationViewModel = viewModel
-        binding.lifecycleOwner = requireActivity()
+        binding.lifecycleOwner = viewLifecycleOwner
 
         viewModel.navigateUserListEvent.observe(viewLifecycleOwner, Observer { navigate ->
             if (navigate) {
