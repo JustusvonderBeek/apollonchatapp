@@ -6,7 +6,7 @@
     app:startDestination="@id/navigation_chat_list">
     <fragment
         android:id="@+id/navigation_chat_list"
-        android:name="com.example.apollonchat.chatlist.ChatListFragment"
+        android:name="com.cloudsheeptechnologies.apollonchat.chatlist.ChatListFragment"
         android:label="Contacts"
         tools:layout="@layout/fragment_chat_list">
         <action
@@ -21,7 +21,7 @@
     </fragment>
     <fragment
         android:id="@+id/navigation_chat_view"
-        android:name="com.example.apollonchat.chatview.ChatViewFragment"
+        android:name="com.cloudsheeptechnologies.apollonchat.chatview.ChatViewFragment"
         android:label="Contact"
         tools:layout="@layout/fragment_chat_view">
         <argument
@@ -30,11 +30,11 @@
     </fragment>
     <fragment
         android:id="@+id/navigation_user_creation"
-        android:name="com.example.apollonchat.usercreate.UserCreationFragment"
+        android:name="com.cloudsheeptechnologies.apollonchat.usercreate.UserCreationFragment"
         android:label="Create new account" />
     <fragment
         android:id="@+id/navigation_add_contact"
-        android:name="com.example.apollonchat.addcontact.AddContactFragment"
+        android:name="com.cloudsheeptechnologies.apollonchat.addcontact.AddContactFragment"
         android:label="Add new Contact"
         tools:layout="@layout/fragment_add_contact" />
 </navigation>

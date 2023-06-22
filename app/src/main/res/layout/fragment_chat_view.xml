@@ -7,7 +7,7 @@
     <data>
         <variable
             name="chatViewViewModel"
-            type="com.example.apollonchat.chatview.ChatViewViewModel" />
+            type="com.cloudsheeptechnologies.apollonchat.chatview.ChatViewViewModel" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout

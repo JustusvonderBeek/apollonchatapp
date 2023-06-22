@@ -6,7 +6,7 @@
     <data>
         <variable
             name="userCreationViewModel"
-            type="com.example.apollonchat.usercreate.UserCreationViewModel" />
+            type="com.cloudsheeptechnologies.apollonchat.usercreate.UserCreationViewModel" />
     </data>
     
     <androidx.constraintlayout.widget.ConstraintLayout

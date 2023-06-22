@@ -8,7 +8,7 @@
     <data>
         <variable
             name="addConctactViewModel"
-            type="com.example.apollonchat.addcontact.AddContactViewModel" />
+            type="com.cloudsheeptechnologies.apollonchat.addcontact.AddContactViewModel" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout

@@ -6,10 +6,10 @@
     <data>
         <variable
             name="clickListener"
-            type="com.example.apollonchat.chatlist.ChatUserItemAdapter.ChatUserItemListener" />
+            type="com.cloudsheeptechnologies.apollonchat.chatlist.ChatUserItemAdapter.ChatUserItemListener" />
         <variable
             name="contact"
-            type="com.example.apollonchat.database.contact.Contact" />
+            type="com.cloudsheeptechnologies.apollonchat.database.contact.Contact" />
     </data>
 
     <androidx.cardview.widget.CardView

@@ -5,7 +5,7 @@
     <data>
         <variable
             name="message"
-            type="com.example.apollonchat.database.message.DisplayMessage"/>
+            type="com.cloudsheeptechnologies.apollonchat.database.message.DisplayMessage"/>
     </data>
 
     <androidx.cardview.widget.CardView
