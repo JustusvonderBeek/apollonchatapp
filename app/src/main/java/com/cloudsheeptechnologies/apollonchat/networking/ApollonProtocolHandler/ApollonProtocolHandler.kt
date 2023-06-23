@@ -3,6 +3,8 @@ package com.cloudsheeptechnologies.apollonchat.networking.ApollonProtocolHandler
 import android.content.Context
 import android.icu.lang.UCharacter
 import android.util.Log
+import androidx.core.app.NotificationManagerCompat
+import com.cloudsheeptechnologies.apollonchat.R
 import com.cloudsheeptechnologies.apollonchat.database.ApollonDatabase
 import com.cloudsheeptechnologies.apollonchat.database.contact.Contact
 import com.cloudsheeptechnologies.apollonchat.database.contact.ContactDatabaseDao
@@ -76,12 +78,13 @@ object ApollonProtocolHandler {
 
     // If this stays the only callback, then handling it exclusively is fine
     private var contactsCallback : ((String) -> Unit)? = null
+    private var notificationCallback : ((DisplayMessage, Contact) -> Unit)? = null
 
     // ---------------------------------------------------
     // Public API
     // ---------------------------------------------------
 
-    fun initialize(userId : UInt, context: Context) {
+    fun initialize(userId: UInt, context: Context, callback: ((DisplayMessage, Contact) -> Unit)? = null) {
         this.imageFileDir = context.filesDir.absolutePath
         val database = ApollonDatabase.getInstance(context)
         userDatabase = database.userDao()
@@ -91,6 +94,8 @@ object ApollonProtocolHandler {
         contactDatabase = database.contactDao()
         messageDatabase = database.messageDao()
         this.userId = userId
+        if (callback != null)
+            notificationCallback = callback
 
         val networkConfig = Networking.Configuration()
         Networking.initialize(networkConfig, incomingPackets)
@@ -523,7 +528,6 @@ object ApollonProtocolHandler {
         }
     }
 
-
     // TODO: Test, Cleanup
     private suspend fun receiveTextMessage(header : Header, payload : String) {
         if (contactDatabase == null || messageDatabase == null) {
@@ -556,6 +560,9 @@ object ApollonProtocolHandler {
             }
             contact.lastMessage = message.Message
             contactDatabase!!.updateContact(contact)
+
+            // Send a notification to the user
+            notificationCallback?.invoke(localMessage, contact)
         }
 
         // TODO: Notify, probably best using background activity
