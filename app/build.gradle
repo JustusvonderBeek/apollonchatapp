@@ -74,6 +74,9 @@ dependencies {
 
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0'
 
+    // Background work
+    implementation "androidx.work:work-runtime-ktx:2.8.1"
+
     // Data compression
     implementation "com.github.luben:zstd-jni:1.5.5-1@aar"
     testImplementation "com.github.luben:zstd-jni:1.5.5-1"
