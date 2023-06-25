@@ -1,4 +1,4 @@
-package com.cloudsheeptechnologies.apollonchat.addcontact
+package com.cloudsheeptech.anzuchat.addcontact
 
 import android.app.Activity
 import android.os.Bundle
@@ -11,10 +11,10 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
-import com.cloudsheeptechnologies.apollonchat.R
-import com.cloudsheeptechnologies.apollonchat.chatlist.ChatUserItemAdapter
-import com.cloudsheeptechnologies.apollonchat.database.ApollonDatabase
-import com.cloudsheeptechnologies.apollonchat.databinding.FragmentAddContactBinding
+import com.cloudsheeptech.anzuchat.R
+import com.cloudsheeptech.anzuchat.chatlist.ChatUserItemAdapter
+import com.cloudsheeptech.anzuchat.database.ApollonDatabase
+import com.cloudsheeptech.anzuchat.databinding.FragmentAddContactBinding
 
 class AddContactFragment : Fragment() {
 

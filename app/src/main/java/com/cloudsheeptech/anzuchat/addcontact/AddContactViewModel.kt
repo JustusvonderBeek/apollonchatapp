@@ -1,14 +1,14 @@
-package com.cloudsheeptechnologies.apollonchat.addcontact
+package com.cloudsheeptech.anzuchat.addcontact
 
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.cloudsheeptechnologies.apollonchat.database.contact.Contact
-import com.cloudsheeptechnologies.apollonchat.database.contact.ContactDatabaseDao
-import com.cloudsheeptechnologies.apollonchat.database.user.UserDatabaseDao
-import com.cloudsheeptechnologies.apollonchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
-import com.cloudsheeptechnologies.apollonchat.networking.packets.*
+import com.cloudsheeptech.anzuchat.database.contact.Contact
+import com.cloudsheeptech.anzuchat.database.contact.ContactDatabaseDao
+import com.cloudsheeptech.anzuchat.database.user.UserDatabaseDao
+import com.cloudsheeptech.anzuchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
+import com.cloudsheeptech.anzuchat.networking.packets.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json

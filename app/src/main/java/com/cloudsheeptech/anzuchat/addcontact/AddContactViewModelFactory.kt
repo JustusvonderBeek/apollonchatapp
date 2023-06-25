@@ -1,9 +1,9 @@
-package com.cloudsheeptechnologies.apollonchat.addcontact
+package com.cloudsheeptech.anzuchat.addcontact
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.cloudsheeptechnologies.apollonchat.database.contact.ContactDatabaseDao
-import com.cloudsheeptechnologies.apollonchat.database.user.UserDatabaseDao
+import com.cloudsheeptech.anzuchat.database.contact.ContactDatabaseDao
+import com.cloudsheeptech.anzuchat.database.user.UserDatabaseDao
 
 class AddContactViewModelFactory(val uDatabase : UserDatabaseDao, val database : ContactDatabaseDao) : ViewModelProvider.Factory {
 
