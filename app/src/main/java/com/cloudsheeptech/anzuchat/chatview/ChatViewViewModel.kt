@@ -33,6 +33,14 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
     val contact : LiveData<Contact>
         get() = _contact
 
+    private val _navigateUp = MutableLiveData<Boolean>()
+    val navigateUp : LiveData<Boolean>
+        get() = _navigateUp
+
+    private val _showRejectHint = MutableLiveData<Boolean>()
+    val showRejectHint : LiveData<Boolean>
+        get() = _showRejectHint
+
     // Used to display messages in the fragment
     private val _messages = messageDatabase.messagesByID(contactID)
     val messages : Flow<PagingData<DisplayMessage>> = Pager(
@@ -69,6 +77,8 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
     init {
         Log.i("ChatViewViewModel", "Init for $contactID")
         _hideKeyboard.value = false
+        _navigateUp.value = false
+        _showRejectHint.value = false
         loadUser(contactID)
         loadMessages(contactID)
         userImage.value = File(application.applicationContext.filesDir, "$contactID.jpeg").absolutePath
@@ -89,6 +99,11 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
         }
     }
 
+    fun rejectUser() {
+        Log.i("ChatViewViewModel", "Rejecting friend!")
+        removeUser()
+    }
+
     fun showContactInformation() {
         Log.i("ChatViewViewModel", "Showing contact information...")
     }
@@ -96,6 +111,23 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
     fun removeUser() {
         Log.i("ChatViewViewModel", "Removing the user $contactID")
         _contact.value?.let { removeContact(it) }
+        navigateUp()
+    }
+
+    private fun navigateUp() {
+        _navigateUp.value = true
+    }
+
+    fun navigatUpDone() {
+        _navigateUp.value = false
+    }
+
+    fun showRejectHint() {
+        _showRejectHint.value = true
+    }
+
+    fun hideRejectHint() {
+        _showRejectHint.value = false
     }
 
     fun hideKeyboardDone() {
@@ -107,21 +139,24 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
             val localContact = loadContactFromDatabase(contactID)
             _contact.value = localContact
             ScrollBottom()
-//            _localMessages = loadMessages()
-//            for (m in localContact.messages) {
-//                _localMessages.add(DisplayMessage(Random.nextInt(), false, content = m, timestamp = ""))
-//            }
-//            _messages.value = _localMessages
+            checkNewContact()
         }
     }
 
-//    private suspend fun loadMessages() : LiveData<MutableList<DisplayMessage>> {
-//        val res = withContext(Dispatchers.IO) {
-//            val messages = mDatabase.getMessages(contactID)
-//            return@withContext messages
-//        }
-//        return res
-//    }
+    private suspend fun checkNewContact() {
+        val res = withContext(Dispatchers.IO) {
+            val messages = messageDatabase.getMessages(contactID)
+            if (messages != null && messages.size == 0) {
+                return@withContext true
+            }
+            false
+        }
+        if (res) {
+            withContext(Dispatchers.Main) {
+                showRejectHint()
+            }
+        }
+    }
 
     fun ScrollBottom() {
 //        this._scroll.value = messages.count()?.let { it.size - 1 }

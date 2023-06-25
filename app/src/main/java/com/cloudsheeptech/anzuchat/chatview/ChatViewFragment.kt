@@ -23,6 +23,8 @@ import com.cloudsheeptech.anzuchat.databinding.FragmentChatViewBinding
 import androidx.core.view.MenuProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import androidx.transition.Visibility
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -134,6 +136,21 @@ class ChatViewFragment : Fragment(), MenuProvider {
                    viewModel.ScrolledBottom()
                }
            }
+        })
+
+        viewModel.navigateUp.observe(viewLifecycleOwner, Observer { navigate ->
+            if (navigate) {
+                viewModel.navigatUpDone()
+                findNavController().navigateUp()
+            }
+        })
+
+        viewModel.showRejectHint.observe(viewLifecycleOwner, Observer {hint ->
+            if (hint) {
+                binding.rejectHintStack.visibility = View.VISIBLE
+            } else {
+                binding.rejectHintStack.visibility = View.GONE
+            }
         })
 
 //        viewModel.contact.observe(viewLifecycleOwner, Observer { cnt ->
