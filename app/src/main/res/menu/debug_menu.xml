@@ -5,22 +5,24 @@
 <!--    Adding an item to clear the database-->
     <item
         android:id="@+id/addUserAction"
-        android:title="Add a new User"
+        android:title="@string/add_user_dd_btn"
         app:showAsAction="ifRoom|withText"
         android:icon="@drawable/ic_add_user"
         />
     <item
         android:id="@+id/clearDatabaseAction"
-        android:title="Clear Database"
+        android:title="@string/clear_database_dd_btn"
         app:showAsAction="never"
         />
     <item
         android:id="@+id/clearUserAction"
-        android:title="Clear User"
+        android:title="@string/clear_user_dd_btn"
         app:showAsAction="never"
         />
     <item
         android:id="@+id/reconnectNetworkAction"
-        android:title="Reconnect Network" />
+        android:title="Reconnect Network"
+        app:showAsAction="never"
+        />
 
 </menu>
