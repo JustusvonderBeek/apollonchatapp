@@ -11,7 +11,7 @@ android {
     compileSdk 33
 
     defaultConfig {
-        applicationId "com.cloudsheeptechnologies.apollonchat"
+        applicationId "com.cloudsheeptech.anzuchat"
         minSdk 26
         targetSdk 33
         versionCode 1
@@ -40,7 +40,7 @@ android {
                 "-Xjvm-default=all",
         ]
     }
-    namespace 'com.cloudsheeptechnologies.apollonchat'
+    namespace 'com.cloudsheeptech.anzuchat'
 }
 
 dependencies {
