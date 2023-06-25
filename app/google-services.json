@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "504553067467",
+    "project_id": "anzu-chat",
+    "storage_bucket": "anzu-chat.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:504553067467:android:3cd93c7dfaf5da7d531c4e",
+        "android_client_info": {
+          "package_name": "com.cloudsheeptechnologies.apollonchat"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "504553067467-3ivrn5p6lhphbopci38iq5cbamtle5l4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDgZBlWtS-vIw-AZQEvrH0iWpck_KKoWHY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "504553067467-3ivrn5p6lhphbopci38iq5cbamtle5l4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
