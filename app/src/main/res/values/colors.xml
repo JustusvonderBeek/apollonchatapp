@@ -15,4 +15,5 @@
     <color name="login_gradient_start">#FF12aa29</color>
     <color name="login_gradient_end">#FF82cc83</color>
     <color name="simple_button_background">#FF82cc83</color>
+    <color name="reject_red">#FFe52006</color>
 </resources>
