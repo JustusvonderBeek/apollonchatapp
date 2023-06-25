@@ -7,7 +7,7 @@
     <data>
         <variable
             name="chatViewViewModel"
-            type="com.cloudsheeptechnologies.apollonchat.chatview.ChatViewViewModel" />
+            type="com.cloudsheeptech.anzuchat.chatview.ChatViewViewModel" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -64,7 +64,7 @@
             android:layout_marginBottom="8dp"
             android:ems="10"
             android:maxHeight="200dp"
-            android:hint="Insert Message"
+            android:hint="@string/insert_message_hint"
             android:inputType="textMultiLine|textPersonName"
             android:text="@={chatViewViewModel.inputMessage}"
             android:textAlignment="viewStart"
@@ -78,7 +78,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Send"
+            android:text="@string/send_btn"
             style="@style/RoundButton"
             android:onClick="@{() -> chatViewViewModel.sendMessage()}"
             app:layout_constraintBottom_toBottomOf="@id/messageBox"

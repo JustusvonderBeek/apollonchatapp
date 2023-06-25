@@ -7,7 +7,7 @@
     <data>
         <variable
             name="chatListViewModel"
-            type="com.cloudsheeptechnologies.apollonchat.chatlist.ChatListViewModel" />
+            type="com.cloudsheeptech.anzuchat.chatlist.ChatListViewModel" />
     </data>
 
     <!-- TODO: Update blank fragment layout -->

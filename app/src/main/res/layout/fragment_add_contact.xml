@@ -8,7 +8,7 @@
     <data>
         <variable
             name="addConctactViewModel"
-            type="com.cloudsheeptechnologies.apollonchat.addcontact.AddContactViewModel" />
+            type="com.cloudsheeptech.anzuchat.addcontact.AddContactViewModel" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -24,7 +24,7 @@
             android:layout_marginStart="8dp"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
-            android:hint="Search Contact..."
+            android:hint="@string/search_contact"
             android:text="@={addConctactViewModel.contactName}"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -37,7 +37,7 @@
             android:layout_marginStart="8dp"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
-            android:text="Search Contacts"
+            android:text="@string/search_contacts_btn"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/searchContactTextBox" />
