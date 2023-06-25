@@ -1,31 +1,29 @@
-package com.cloudsheeptechnologies.apollonchat.networking.ApollonProtocolHandler
+package com.cloudsheeptech.anzuchat.networking.ApollonProtocolHandler
 
 import android.content.Context
 import android.icu.lang.UCharacter
 import android.util.Log
-import androidx.core.app.NotificationManagerCompat
-import com.cloudsheeptechnologies.apollonchat.R
-import com.cloudsheeptechnologies.apollonchat.database.ApollonDatabase
-import com.cloudsheeptechnologies.apollonchat.database.contact.Contact
-import com.cloudsheeptechnologies.apollonchat.database.contact.ContactDatabaseDao
-import com.cloudsheeptechnologies.apollonchat.database.message.DisplayMessage
-import com.cloudsheeptechnologies.apollonchat.database.message.MessageDao
-import com.cloudsheeptechnologies.apollonchat.database.user.User
-import com.cloudsheeptechnologies.apollonchat.database.user.UserDatabaseDao
-import com.cloudsheeptechnologies.apollonchat.networking.Networking
-import com.cloudsheeptechnologies.apollonchat.networking.Networking.receivePackets
-import com.cloudsheeptechnologies.apollonchat.networking.constants.ContactType
-import com.cloudsheeptechnologies.apollonchat.networking.constants.DataType
-import com.cloudsheeptechnologies.apollonchat.networking.constants.PacketCategories
-import com.cloudsheeptechnologies.apollonchat.networking.packets.ContactInfo
-import com.cloudsheeptechnologies.apollonchat.networking.packets.ContactOption
-import com.cloudsheeptechnologies.apollonchat.networking.packets.Create
-import com.cloudsheeptechnologies.apollonchat.networking.packets.FileHave
-import com.cloudsheeptechnologies.apollonchat.networking.packets.FileInfo
-import com.cloudsheeptechnologies.apollonchat.networking.packets.Header
-import com.cloudsheeptechnologies.apollonchat.networking.packets.Message
-import com.cloudsheeptechnologies.apollonchat.networking.packets.NetworkOption
-import com.cloudsheeptechnologies.apollonchat.networking.packets.Search
+import com.cloudsheeptech.anzuchat.database.ApollonDatabase
+import com.cloudsheeptech.anzuchat.database.contact.Contact
+import com.cloudsheeptech.anzuchat.database.contact.ContactDatabaseDao
+import com.cloudsheeptech.anzuchat.database.message.DisplayMessage
+import com.cloudsheeptech.anzuchat.database.message.MessageDao
+import com.cloudsheeptech.anzuchat.database.user.User
+import com.cloudsheeptech.anzuchat.database.user.UserDatabaseDao
+import com.cloudsheeptech.anzuchat.networking.Networking
+import com.cloudsheeptech.anzuchat.networking.Networking.receivePackets
+import com.cloudsheeptech.anzuchat.networking.constants.ContactType
+import com.cloudsheeptech.anzuchat.networking.constants.DataType
+import com.cloudsheeptech.anzuchat.networking.constants.PacketCategories
+import com.cloudsheeptech.anzuchat.networking.packets.ContactInfo
+import com.cloudsheeptech.anzuchat.networking.packets.ContactOption
+import com.cloudsheeptech.anzuchat.networking.packets.Create
+import com.cloudsheeptech.anzuchat.networking.packets.FileHave
+import com.cloudsheeptech.anzuchat.networking.packets.FileInfo
+import com.cloudsheeptech.anzuchat.networking.packets.Header
+import com.cloudsheeptech.anzuchat.networking.packets.Message
+import com.cloudsheeptech.anzuchat.networking.packets.NetworkOption
+import com.cloudsheeptech.anzuchat.networking.packets.Search
 import com.github.luben.zstd.Zstd
 import io.ktor.util.date.getTimeMillis
 import kotlinx.coroutines.CoroutineScope
@@ -320,17 +318,23 @@ object ApollonProtocolHandler {
         }
     }
 
-    private suspend fun insertMessageIntoDatabase(header: Header, message: Message) {
+    private suspend fun insertMessageIntoDatabase(header: Header, message: Message, received : Boolean = false) {
         withContext(Dispatchers.IO) {
             var prevId = 0L
-            val messages = messageDatabase!!.getMessages(message.ContactUserId.toLong())
+            // Default: receiving message
+            var remoteId = header.UserId
+            if (remoteId == userId) {
+                // In case we SENT the message
+                remoteId = message.ContactUserId
+            }
+            val messages = messageDatabase!!.getMessages(remoteId.toLong())
             if (messages != null) {
                 prevId = messages.size + 1L
             }
-            val localMessage = DisplayMessage(prevId, message.ContactUserId.toLong(), true, message.Message, message.Timestamp)
+            val localMessage = DisplayMessage(prevId, remoteId.toLong(), !received && header.UserId == userId, message.Message, message.Timestamp)
             messageDatabase!!.insertMessage(localMessage)
 
-            val contact = contactDatabase!!.getContact(header.UserId.toLong())
+            val contact = contactDatabase!!.getContact(remoteId.toLong())
             if (contact == null) {
                 Log.i("ApollonProtocolHandler", "Failed to find user for ID ${header.UserId}")
                 // Should kill the connection?
@@ -338,6 +342,10 @@ object ApollonProtocolHandler {
             }
             contact.lastMessage = message.Message
             contactDatabase!!.updateContact(contact)
+
+            // Send a notification to the user in case of remote message
+            if (header.UserId != userId)
+                notificationCallback?.invoke(localMessage, contact)
         }
     }
 
@@ -545,27 +553,8 @@ object ApollonProtocolHandler {
             }
             val message = res.getOrNull()!!
             // Inserting the new message into the database
-            var prevId = 0L
-            val messages = messageDatabase!!.getMessages(header.UserId.toLong())
-            if (messages != null) {
-                prevId = messages.size + 1L
-            }
-            val localMessage = DisplayMessage(prevId, header.UserId.toLong(), false, message.Message, message.Timestamp)
-            messageDatabase!!.insertMessage(localMessage)
-            val contact = contactDatabase!!.getContact(header.UserId.toLong())
-            if (contact == null) {
-                Log.i("ApollonProtocolHandler", "Failed to find user for ID ${header.UserId}")
-                // Should kill the connection?
-                return@withContext
-            }
-            contact.lastMessage = message.Message
-            contactDatabase!!.updateContact(contact)
-
-            // Send a notification to the user
-            notificationCallback?.invoke(localMessage, contact)
+            insertMessageIntoDatabase(header, message, true)
         }
-
-        // TODO: Notify, probably best using background activity
     }
 
     // TODO: Test, Cleanup
