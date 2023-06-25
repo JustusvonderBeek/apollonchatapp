@@ -15,4 +15,5 @@
     <string name="add_user_dd_btn">Kontakt hinzufügen</string>
     <string name="clear_database_dd_btn">Datenbank löschen</string>
     <string name="clear_user_dd_btn">Benutzer löschen</string>
+    <string name="reject_help_text">Dieser Kontakt wurde soeben in deine Kontaktliste hinzugefügt. Falls du nicht mit diesem Kontakt reden wills drücke den Knopf darunter. Nachdem du eine Nachricht gesendet hast verschwindet diese Nachricht.</string>
 </resources>
