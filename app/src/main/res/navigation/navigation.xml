@@ -6,8 +6,8 @@
     app:startDestination="@id/navigation_chat_list">
     <fragment
         android:id="@+id/navigation_chat_list"
-        android:name="com.cloudsheeptechnologies.apollonchat.chatlist.ChatListFragment"
-        android:label="Contacts"
+        android:name="com.cloudsheeptech.anzuchat.chatlist.ChatListFragment"
+        android:label="@string/chat_list_ttl"
         tools:layout="@layout/fragment_chat_list">
         <action
             android:id="@+id/action_chatListFragment_to_chatViewFragment"
@@ -21,8 +21,8 @@
     </fragment>
     <fragment
         android:id="@+id/navigation_chat_view"
-        android:name="com.cloudsheeptechnologies.apollonchat.chatview.ChatViewFragment"
-        android:label="Contact"
+        android:name="com.cloudsheeptech.anzuchat.chatview.ChatViewFragment"
+        android:label="@string/chat_view_ttl"
         tools:layout="@layout/fragment_chat_view">
         <argument
             android:name="contactID"
@@ -30,11 +30,11 @@
     </fragment>
     <fragment
         android:id="@+id/navigation_user_creation"
-        android:name="com.cloudsheeptechnologies.apollonchat.usercreate.UserCreationFragment"
-        android:label="Create new account" />
+        android:name="com.cloudsheeptech.anzuchat.usercreate.UserCreationFragment"
+        android:label="@string/user_creation_ttl" />
     <fragment
         android:id="@+id/navigation_add_contact"
-        android:name="com.cloudsheeptechnologies.apollonchat.addcontact.AddContactFragment"
-        android:label="Add new Contact"
+        android:name="com.cloudsheeptech.anzuchat.addcontact.AddContactFragment"
+        android:label="@string/add_user_ttl"
         tools:layout="@layout/fragment_add_contact" />
 </navigation>
