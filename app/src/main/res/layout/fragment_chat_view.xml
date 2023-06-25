@@ -15,7 +15,7 @@
         android:layout_height="match_parent">
 
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/headerStack"
+            android:id="@+id/rejectHintStack"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
@@ -24,7 +24,35 @@
             android:orientation="horizontal"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintTop_toTopOf="parent"
+            android:visibility="gone"
+            >
+
+            <TextView
+                android:id="@+id/rejectTextView"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:text="@string/reject_help_text"
+                style="@style/AttentionTextStyle"
+                />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/rejectFriendButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="@id/rejectTextView"
+                app:layout_constraintEnd_toEndOf="@id/rejectTextView"
+                app:layout_constraintTop_toBottomOf="@id/rejectTextView"
+                app:layout_constraintBottom_toBottomOf="parent"
+                android:layout_marginTop="8dp"
+                android:text="@string/reject_friend_btn"
+                style="@style/RoundButton"
+                android:backgroundTint="@color/reject_red"
+                android:onClick="@{() -> chatViewViewModel.rejectUser()}"
+                />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -37,7 +65,7 @@
             app:layout_constraintBottom_toTopOf="@id/messageBox"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/headerStack"
+            app:layout_constraintTop_toBottomOf="@+id/rejectHintStack"
             tools:listitem="@layout/chat_message_item">
 
         </androidx.recyclerview.widget.RecyclerView>
