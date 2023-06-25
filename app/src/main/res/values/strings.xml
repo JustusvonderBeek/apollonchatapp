@@ -1,10 +1,20 @@
 <resources>
-    <string name="app_name">Apollon Chat</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="notification_channel">Notify</string>
-    <string name="notification_description">Description</string>
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="app_name">Anzu Chat</string>
+    <string name="notification_channel" translatable="false">Notify</string>
+    <string name="notification_description" translatable="false">Description</string>
+    <string name="hello_blank_fragment" translatable="false">Hello blank fragment</string>
     <string name="btn_crt_user">Create user</string>
     <string name="hint_insert_username">Insert Username</string>
-    <string name="login_description">Create your new account for the Apollon Chat App and start texting right away! Currently you can send text to your contacts. In the future we are working on images, videos, voice messages and files of unlimited size...</string>
+    <string name="login_description">Create your new account for the Apollon Chat App and start texting right away! Currently you can send text to your contacts. In the future we are working on images, videos, voice messages and files of unlimited size…</string>
+    <string name="search_contact">Search Contact...</string>
+    <string name="search_contacts_btn">Search Contacts</string>
+    <string name="insert_message_hint">Insert Message</string>
+    <string name="send_btn">Send</string>
+    <string name="user_creation_ttl">Create new account</string>
+    <string name="add_user_ttl">Add a contact</string>
+    <string name="chat_view_ttl">Contact</string>
+    <string name="chat_list_ttl">Contacts</string>
+    <string name="add_user_dd_btn">Add a new User</string>
+    <string name="clear_database_dd_btn">Clear Database</string>
+    <string name="clear_user_dd_btn">Clear User</string>
 </resources>

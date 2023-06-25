@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Anzu Chat</string>
+    <string name="btn_crt_user">Erstelle einen Nutzer</string>
+    <string name="hint_insert_username">Benutzername eingeben</string>
+    <string name="login_description">Erstelle jetzt deinen neuen Account für die Anzu Chat App und fange direkt an mit dem Texten! Aktuell kannst du Text an deinen Kontakte senden. In Zukunft wird es auch möglich sein Bilder, Videos, Voice Nachrichten und unbegrenzt große Dateien zu versenden.</string>
+    <string name="search_contact">Benutzer suchen</string>
+    <string name="search_contacts_btn">Suchen</string>
+    <string name="insert_message_hint">Neue Nachricht</string>
+    <string name="send_btn">Senden</string>
+    <string name="user_creation_ttl">Neuen Account erstellen</string>
+    <string name="add_user_ttl">Kontakt hinzufügen</string>
+    <string name="chat_view_ttl">Kontakt</string>
+    <string name="chat_list_ttl">Kontakte</string>
+    <string name="add_user_dd_btn">Kontakt hinzufügen</string>
+    <string name="clear_database_dd_btn">Datenbank löschen</string>
+    <string name="clear_user_dd_btn">Benutzer löschen</string>
+</resources>
