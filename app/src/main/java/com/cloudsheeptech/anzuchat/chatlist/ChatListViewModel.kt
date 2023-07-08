@@ -89,9 +89,7 @@ class ChatListViewModel(val application: Application) : ViewModel() {
     }
 
     private suspend fun restartNetwork() {
-        withContext(Dispatchers.IO) {
-            Networking.start(application.applicationContext)
-        }
+
     }
 
     fun onContactClicked(contactID : Long) {
