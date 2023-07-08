@@ -19,4 +19,7 @@
     <string name="clear_user_dd_btn">Clear User</string>
     <string name="reject_friend_btn">Reject Friend</string>
     <string name="reject_help_text">It seems like this contact was just added to your contact list. In case you don\'t want to talk to this user press the button below. After writing a text message, this message disappears.</string>
+    <string name="last_online_prefix">Last Online</string>
+    <string name="last_online_never">Never</string>
+    <string name="chat_list_title">Chats</string>
 </resources>
