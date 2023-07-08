@@ -15,7 +15,18 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <!-- TODO: Update blank fragment layout -->
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/addContactToolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:navigationIcon="@drawable/ic_back"
+            app:title="Add a new contact"
+            app:navigationIconTint="@color/design_default_color_on_primary"
+            style="@style/Widget.MaterialComponents.Toolbar.Primary"
+            />
 
         <EditText
             android:id="@+id/searchContactTextBox"
@@ -28,7 +39,7 @@
             android:text="@={addConctactViewModel.contactName}"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toBottomOf="@id/addContactToolbar" />
 
         <Button
             android:id="@+id/searchContactButton"
