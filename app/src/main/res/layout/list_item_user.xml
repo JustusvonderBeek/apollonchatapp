@@ -4,6 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
+        <!-- Is needed to be able to specify the imageUrl in the ImageView below -->
+        <variable
+            name="imageUrl"
+            type="String" />
         <variable
             name="clickListener"
             type="com.cloudsheeptech.anzuchat.chatlist.ChatUserItemAdapter.ChatUserItemListener" />
@@ -41,7 +45,7 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
 
-                <ImageView
+                <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/userImage"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
@@ -51,6 +55,8 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     app:srcCompat="@drawable/ic_user"
+                    app:imageUrl="@{imageUrl}"
+                    app:shapeAppearanceOverlay="@style/ImageView.Round"
                     />
 
                 <ImageView
