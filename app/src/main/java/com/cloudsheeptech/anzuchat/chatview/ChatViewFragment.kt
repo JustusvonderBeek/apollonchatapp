@@ -1,6 +1,7 @@
 package com.cloudsheeptech.anzuchat.chatview
 
 import android.app.Activity
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
@@ -12,21 +13,22 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
-import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.Fragment
+import androidx.core.view.MenuProvider
 import androidx.databinding.DataBindingUtil
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.findNavController
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
+import com.bumptech.glide.Glide
 import com.cloudsheeptech.anzuchat.R
 import com.cloudsheeptech.anzuchat.databinding.FragmentChatViewBinding
-import androidx.core.view.MenuProvider
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController
-import androidx.transition.Visibility
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.io.File
 
 class ChatViewFragment : Fragment(), MenuProvider {
     private lateinit var viewModel : ChatViewViewModel
@@ -96,39 +98,37 @@ class ChatViewFragment : Fragment(), MenuProvider {
 
         viewModel.userImage.observe(viewLifecycleOwner, Observer { path ->
             Log.i("ChatViewFragment", "Path: $path")
-            if (path != "") {
-                Log.i("ChatViewFragment", "Changing image path")
-                try {
-                    var image = BitmapFactory.decodeFile(path)
-                    if (image.height > 60) {
-                        // Resize to fit the image better
-                        var scaledImage = Bitmap.createScaledBitmap(image, 60, 60, true)
-                        image = scaledImage
-                    }
-//                    binding.chatViewToolbarImage.setImageBitmap(image)
-//                 binding.userImage.setImageResource(R.drawable.owl)
-                } catch (ex : Exception) {
-                    Log.i("ChatViewFragment", "Failed to load image from $path: $ex")
-//                    binding.chatViewToolbarImage.setImageResource(R.drawable.usericon)
-                }
-            } else {
-//                binding.chatViewToolbarImage.setImageResource(R.drawable.usericon)
+            if (path == "") {
+                return@Observer
             }
-//            binding.userImage.setImageResource(R.drawable.owl)
+            if (!File(path).exists()) {
+                return@Observer
+            }
+            Log.i("ChatViewFragment", "Changing image path")
+            try {
+                val image = BitmapFactory.decodeFile(path)
+//                if (image.height > 60) {
+//                    // Resize to fit the image better
+//                    val scaledImage = Bitmap.createScaledBitmap(image, 60, 60, true)
+//                    image = scaledImage
+//                }
+                Glide.with(this)
+                    .load(image).centerCrop()
+                    .into(binding.chatviewToolbarImage);
+            } catch (ex : Exception) {
+                Log.i("ChatViewFragment", "Failed to load image from $path: $ex")
+                binding.chatviewToolbarImage.setImageResource(R.drawable.ic_user)
+            }
         })
 
-        viewModel.contact.observe(viewLifecycleOwner, Observer { contact ->
-            contact?.let {
-                (requireActivity() as AppCompatActivity).supportActionBar?.title = contact.contactName
-            }
-        })
 
         viewModel.lastOnline.observe(viewLifecycleOwner, Observer { lastOnline ->
             lastOnline?.let {
-                (requireActivity() as AppCompatActivity).supportActionBar?.subtitle = lastOnline
+                binding.chatviewToolbarSubtitle.text = lastOnline
             }
         })
 
+        // TODO: Fix with paginated view
         viewModel.scrollToBottom.observe(viewLifecycleOwner, Observer { scroll ->
            scroll?.let {
                if (it > 0) {
@@ -153,13 +153,30 @@ class ChatViewFragment : Fragment(), MenuProvider {
             }
         })
 
-//        viewModel.contact.observe(viewLifecycleOwner, Observer { cnt ->
-//            cnt?.let {
-//                adapter.submitList(cnt.messages)
-////                adapter.notifyDataSetChanged()
-//            }
-//        })
-
         return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // Adding the toolbar to the view
+        binding.chatviewToolbar.inflateMenu(R.menu.chat_view_menu)
+        binding.chatviewToolbar.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.manageUserAction -> {
+                    viewModel.showContactInformation()
+                    true
+                }
+                R.id.removeUserAction -> {
+                    viewModel.removeUser()
+                    true
+                }
+            }
+            false
+        }
+
+        // Adding the back button to the toolbar
+        binding.chatviewToolbar.setNavigationOnClickListener {
+            view.findNavController().navigateUp()
+        }
     }
 }

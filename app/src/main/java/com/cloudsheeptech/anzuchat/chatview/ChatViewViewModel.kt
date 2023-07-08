@@ -1,6 +1,7 @@
 package com.cloudsheeptech.anzuchat.chatview
 
 import android.app.Application
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -10,6 +11,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import com.cloudsheeptech.anzuchat.R
 import com.cloudsheeptech.anzuchat.database.contact.Contact
 import com.cloudsheeptech.anzuchat.database.contact.ContactDatabaseDao
 import com.cloudsheeptech.anzuchat.database.message.DisplayMessage
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.io.File
 import java.io.IOException
+import kotlin.coroutines.coroutineContext
 
 class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactDatabaseDao, val userDatabase : UserDatabaseDao, val messageDatabase : MessageDao, val application: Application) : ViewModel() {
 
@@ -42,7 +45,6 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
         get() = _showRejectHint
 
     // Used to display messages in the fragment
-    private val _messages = messageDatabase.messagesByID(contactID)
     val messages : Flow<PagingData<DisplayMessage>> = Pager(
         config = PagingConfig(
             pageSize = 50,
@@ -55,9 +57,7 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
         it
     }.cachedIn(viewModelScope)
 
-    private val _lastOnline = MutableLiveData("Last Online: Never")
-    val lastOnline : LiveData<String>
-        get() = _lastOnline
+    val lastOnline = MutableLiveData<String>(application.getString(R.string.last_online_prefix) + ": " + application.getString(R.string.last_online_never))
 
     private val _scroll = MutableLiveData(-1)
     val scrollToBottom : LiveData<Int>
@@ -140,6 +140,7 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
             _contact.value = localContact
             ScrollBottom()
             checkNewContact()
+            lastOnline.value = application.getString(R.string.last_online_prefix) + ": " + localContact.lastMessage
         }
     }
 
