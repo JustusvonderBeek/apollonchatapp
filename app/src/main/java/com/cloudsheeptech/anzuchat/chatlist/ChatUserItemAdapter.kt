@@ -1,14 +1,19 @@
 package com.cloudsheeptech.anzuchat.chatlist
 
 import android.content.Context
+import android.icu.lang.UCharacter
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.databinding.BindingAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.cloudsheeptech.anzuchat.database.contact.Contact
 import com.cloudsheeptech.anzuchat.databinding.ListItemUserBinding
+import com.google.android.material.imageview.ShapeableImageView
+import java.io.File
 
 class TextItemViewHolder(val textView: TextView): RecyclerView.ViewHolder(textView)
 
@@ -32,6 +37,8 @@ class ChatUserItemAdapter(val clickListener : ChatUserItemListener, private val 
         fun bind(clickListener : ChatUserItemListener, item : Contact, context: Context) {
             binding.contact = item
             binding.clickListener = clickListener
+            val imageDir = context.filesDir.absolutePath
+            binding.imageUrl = File(imageDir, item.contactImagePath).absolutePath
 //            binding.username = item.contactName
             binding.executePendingBindings()
         }
@@ -60,5 +67,17 @@ class ChatUserItemAdapter(val clickListener : ChatUserItemListener, private val 
             return oldItem == newItem
 //            return false
         }
+    }
+}
+
+@BindingAdapter("imageUrl")
+fun loadImage(view: ShapeableImageView, imageUrl: String?) {
+    if (imageUrl == null) {
+        return
+    }
+    if (File(imageUrl).exists()) {
+        Glide.with(view.context)
+            .load(imageUrl)
+            .into(view)
     }
 }
