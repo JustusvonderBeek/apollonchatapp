@@ -40,6 +40,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding : ActivityMainBinding
     private lateinit var notificationManager: NotificationManager
+    private var notificationCompatBuilder : NotificationCompat.Builder? = null
 
     private var job = Job()
     private var mainScope = CoroutineScope(Dispatchers.Main + job)
@@ -49,15 +50,17 @@ class MainActivity : AppCompatActivity() {
         setupNotification()
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
-        setSupportActionBar(binding.mainActionBar)
+
+        // No need to setup the action bar here, as each fragment now needs to handle the back button etc.
+//        setSupportActionBar(binding.mainActionBar)
 
         // This does only work when the Navigation component is inside a <fragment> tag, NOTHING ELSE!
-        val navController = findNavController(R.id.navHostFragment)
-
-        // Decide what fragments should be "top-level" and SHOULD NOT! have a "back" arrow
-        val appBarConfiguration = AppBarConfiguration.Builder(setOf(R.id.navigation_chat_list, R.id.navigation_user_creation)).build()
-        // The back arrow in the actionBar (title bar on top)
-        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration)
+//        val navController = findNavController(R.id.navHostFragment)
+//
+//        // Decide what fragments should be "top-level" and SHOULD NOT! have a "back" arrow
+//        val appBarConfiguration = AppBarConfiguration.Builder(setOf(R.id.navigation_chat_list, R.id.navigation_user_creation)).build()
+//        // The back arrow in the actionBar (title bar on top)
+//        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration)
 
         // Starting the networking service here since it will be used throughout the whole app
         // TODO: Loading the newly created user
@@ -105,7 +108,8 @@ class MainActivity : AppCompatActivity() {
         return navController.navigateUp()
     }
 
-    private fun messageNotification(message : DisplayMessage, contact : Contact) {
+    private fun setupNotificationCompat(): NotificationCompat.Builder {
+        // Make the notification clickable
         val chatViewIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
@@ -113,22 +117,47 @@ class MainActivity : AppCompatActivity() {
             addNextIntentWithParentStack(chatViewIntent)
             getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         }
-        val notification = NotificationCompat.Builder(applicationContext, "NOTIFICATIONS")
-            .setStyle(NotificationCompat.MessagingStyle(Person.Builder().setName(contact.contactName).build())
-                .addMessage(NotificationCompat.MessagingStyle.Message(message.content, Calendar.getInstance().timeInMillis, Person.Builder().setName(contact.contactName).build()))
-            )
+
+        val ownPerson = Person.Builder().setName("Own").build()
+        val messagingStyle = NotificationCompat.MessagingStyle(ownPerson)
+        messagingStyle.isGroupConversation = false
+
+        return NotificationCompat.Builder(applicationContext, "NOTIFICATIONS")
+            .setStyle(messagingStyle)
+            .setContentIntent(pendingIntent)
             .setSmallIcon(R.drawable.ic_user)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            .setGroup("com.cloudsheeptechnologies.apollonchat.CHAT_MESSAGE")
-            .setContentIntent(pendingIntent)
             .setAutoCancel(true)
-            .build()
+    }
 
+    private fun messageNotification(message : DisplayMessage, contact : Contact) {
+        // In case we receive the first notification
+        if (notificationCompatBuilder == null) {
+            notificationCompatBuilder = setupNotificationCompat()
+        }
+
+        // Retrieve the messaging style and add or update the style in case of new user
+        val oldNotifyStyle = notificationCompatBuilder!!.build()
+        val messageStyle = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(oldNotifyStyle)
+        if (messageStyle == null) {
+            Log.i("MainActivity", "The message style is null, so something went very wrong!")
+            return
+        }
+
+        messageStyle.addMessage(NotificationCompat.MessagingStyle.Message(
+            message.content,
+            Calendar.getInstance().timeInMillis,
+            Person.Builder().setName(contact.contactName).build()
+        ))
+        val notification = notificationCompatBuilder!!.setStyle(messageStyle).build()
+
+        // Send the actual notification
         with(NotificationManagerCompat.from(applicationContext)) {
             if (ActivityCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 return
             }
+            // Because we include the whole message history update the old one (bind to contact ID)
             notify(contact.contactId.toInt(), notification)
         }
     }
@@ -139,7 +168,6 @@ class MainActivity : AppCompatActivity() {
         val repeatingFetch = PeriodicWorkRequestBuilder<FetchNetworkWorker>(15, TimeUnit.MINUTES).build()
         WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(FetchNetworkWorker.WORK_NAME,
             ExistingPeriodicWorkPolicy.UPDATE, repeatingFetch)
-
         super.onDestroy()
     }
 }
