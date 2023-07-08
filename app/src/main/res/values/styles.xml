@@ -82,4 +82,20 @@
         <item name="android:justificationMode">inter_word</item>
         <item name="color">@color/reject_red</item>
     </style>
+    <style name="ImageView.Corner" parent="">
+        <item name="cornerSizeTopRight">8dp</item>
+        <item name="cornerSizeTopLeft">8dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+        <item name="cornerFamily">rounded</item>
+    </style>
+    <style name="ImageView.Round" parent="">
+        <item name="cornerSize">50%</item>
+    </style>
+    <style name="Toolbar.Title" parent="TextAppearance.AppCompat.Widget.ActionBar.Title">
+        <item name="android:textColor">@color/design_default_color_on_primary</item>
+    </style>
+    <style name="Toolbar.Subtitle" parent="TextAppearance.AppCompat.Widget.ActionBar.Subtitle">
+        <item name="android:textColor">@color/design_default_color_on_primary</item>
+    </style>
 </resources>
