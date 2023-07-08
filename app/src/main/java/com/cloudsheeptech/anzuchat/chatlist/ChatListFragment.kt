@@ -14,7 +14,7 @@ import androidx.navigation.fragment.findNavController
 import com.cloudsheeptech.anzuchat.R
 import com.cloudsheeptech.anzuchat.databinding.FragmentChatListBinding
 
-class ChatListFragment : Fragment(), MenuProvider {
+class ChatListFragment : Fragment() {
     private lateinit var viewModel : ChatListViewModel
     private lateinit var viewModelFactory : ChatListViewModelFactory
 
@@ -24,46 +24,13 @@ class ChatListFragment : Fragment(), MenuProvider {
         super.onCreate(savedInstanceState)
     }
 
-    // Methods to execute when app bar item is clicked
-    override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-        menuInflater.inflate(R.menu.debug_menu, menu)
-    }
-
-    override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-        when (menuItem.itemId) {
-            R.id.clearDatabaseAction -> {
-                Log.i("ChatListFragment", "Clearing the database")
-                viewModel.clearContacts()
-                viewModel.clearMessages()
-                return true
-            }
-            R.id.clearUserAction -> {
-                Log.i("ChatListFragment", "Clearing User")
-                viewModel.clearUser()
-                return true
-            }
-            R.id.reconnectNetworkAction -> {
-                Log.i("ChatListFragment", "Reconnecting the Network")
-                viewModel.reconnectNetwork()
-                return true
-            }
-            R.id.addUserAction -> {
-                this.findNavController().navigate(ChatListFragmentDirections.actionNavigationChatListToAddContactFragment())
-            }
-            // Remove the button from the main UI
-        }
-        return false
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         // Inflate the layout for this fragment
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_chat_list, container, false)
-
-        // Enabling the debug menu in the app bar (3 dots)
-        requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
+        // DO NOT USE THE SETUP SUPPORT TOOLBAR FOR FRAGMENT OWNED TOOLBARS!
 
         // Getting all database DAOs and bring them into the networking and start it
         val application = requireNotNull(this.activity).application
@@ -72,11 +39,6 @@ class ChatListFragment : Fragment(), MenuProvider {
         viewModel = ViewModelProvider(requireActivity(), viewModelFactory)[ChatListViewModel::class.java]
         binding.chatListViewModel = viewModel
         binding.lifecycleOwner = requireActivity()
-
-        (requireActivity() as AppCompatActivity).supportActionBar?.title = "Chats"
-        (requireActivity() as AppCompatActivity).supportActionBar?.subtitle = ""
-//        (requireActivity() as AppCompatActivity).addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
-
 
         // Move to the view that shows the chat with the clicked user
         val adapter = ChatUserItemAdapter(ChatUserItemAdapter.ChatUserItemListener { contactId ->
@@ -113,5 +75,38 @@ class ChatListFragment : Fragment(), MenuProvider {
         })
 
         return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        binding.chatlistToolbar.inflateMenu(R.menu.debug_menu)
+        // For fragment owned toolbars add the click listener directly here7
+        binding.chatlistToolbar.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.clearDatabaseAction -> {
+                    Log.i("ChatListFragment", "Clearing the database")
+                    viewModel.clearContacts()
+                    viewModel.clearMessages()
+                    true
+                }
+                R.id.clearUserAction -> {
+                    Log.i("ChatListFragment", "Clearing User")
+                    viewModel.clearUser()
+                    true
+                }
+                R.id.reconnectNetworkAction -> {
+                    Log.i("ChatListFragment", "Reconnecting the Network")
+                    viewModel.reconnectNetwork()
+                    true
+                }
+                R.id.addUserAction -> {
+                    this.findNavController().navigate(ChatListFragmentDirections.actionNavigationChatListToAddContactFragment())
+                    true
+                }
+                // Remove the button from the main UI
+                else -> false
+            }
+        }
+        // In this view we don't need an up or back button for the navigation!
     }
 }
