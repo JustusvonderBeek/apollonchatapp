@@ -81,6 +81,10 @@ dependencies {
     implementation "com.github.luben:zstd-jni:1.5.5-1@aar"
     testImplementation "com.github.luben:zstd-jni:1.5.5-1"
 
+    // Images & handling
+    implementation 'com.github.bumptech.glide:glide:4.12.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.12.0'
+
     // Testing
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.navigation:navigation-testing:2.6.0'
