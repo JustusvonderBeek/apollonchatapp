@@ -11,7 +11,7 @@ import com.cloudsheeptech.anzuchat.database.message.MessageDao
 import com.cloudsheeptech.anzuchat.database.user.User
 import com.cloudsheeptech.anzuchat.database.user.UserDatabaseDao
 import com.cloudsheeptech.anzuchat.networking.Networking
-import com.cloudsheeptech.anzuchat.networking.Networking.receivePackets
+import com.cloudsheeptech.anzuchat.networking.Networking.produceBytes
 import com.cloudsheeptech.anzuchat.networking.constants.ContactType
 import com.cloudsheeptech.anzuchat.networking.constants.DataType
 import com.cloudsheeptech.anzuchat.networking.constants.PacketCategories
@@ -71,6 +71,8 @@ object ApollonProtocolHandler {
     private var messageDatabase : MessageDao? = null
     private var contactDatabase : ContactDatabaseDao? = null
 
+    private lateinit var network : Networking
+
     private var protocolJobs = Job()
     private var protocolScope = CoroutineScope(Dispatchers.Main + protocolJobs)
 
@@ -96,8 +98,8 @@ object ApollonProtocolHandler {
             notificationCallback = callback
 
         val networkConfig = Networking.Configuration()
-        Networking.initialize(networkConfig, incomingPackets)
-        Networking.start(context)
+//        network = Networking(networkConfig, context)
+        Networking.init(networkConfig, context)
 
         thread {
             runBlocking {
@@ -119,7 +121,7 @@ object ApollonProtocolHandler {
         Log.i("ApollonProtocolHandler", "Initialized Protocol Handler with ID $userId")
     }
 
-    fun Close() {
+    fun close() {
         storeUnacked()
     }
 
@@ -247,7 +249,7 @@ object ApollonProtocolHandler {
                         val encoded = Json.encodeToString(fileHave)
                         val haveHeader = Header(PacketCategories.DATA.cat.toByte(), DataType.FILE_HAVE.type.toByte(), userId, header.MessageId)
                         val rawPacket = encoded.toByteArray()
-                        Networking.write(haveHeader.toByteArray() + rawPacket)
+                        network.send(haveHeader.toByteArray() + rawPacket)
                     }
                     DataType.FILE_HAVE -> {
 //                        val payload = incomingStream.bufferedReader().readLine()
@@ -267,7 +269,7 @@ object ApollonProtocolHandler {
                         val file = File(fileInfo.FileName)
                         val buffer = file.readBytes()
                         val fileHeader = Header(PacketCategories.DATA.cat.toByte(), DataType.FILE.type.toByte(), userId, header.MessageId)
-                        Networking.write(fileHeader.toByteArray() + buffer.sliceArray(fileHave.FileOffset until buffer.size))
+                        network.send(fileHeader.toByteArray() + buffer.sliceArray(fileHave.FileOffset until buffer.size))
                     }
                     DataType.FILE -> {
                         val sfileInfo = findMessageId(header.MessageId)
@@ -297,7 +299,7 @@ object ApollonProtocolHandler {
                         // Create ack and send back
                         val fileAck = Header(PacketCategories.DATA.cat.toByte(), DataType.FILE_ACK.type.toByte(), userId, header.MessageId)
                         val rawAck = fileAck.toByteArray()
-                        Networking.write(rawAck)
+                        network.send(rawAck)
                     }
                     DataType.FILE_ACK -> {
                         unackedPackets.removeIf {
@@ -381,8 +383,34 @@ object ApollonProtocolHandler {
         }
     }
 
-    fun SendContactInformationUpdate() {
-
+    fun sendContactInformation(username : String?, image : ByteArray?) {
+        // Checking what values need to be changed and prepare the packet
+        if (username == null && image == null)
+            return
+        // TODO: Fix only username change
+        if (image == null)
+            return
+        try {
+            val mID = messageID.getAndAdd(1).toUInt()
+            val header = Header(PacketCategories.CONTACT.cat.toByte(), ContactType.CONTACT_INFO.type.toByte(), userId, mID)
+            val contacts = mutableListOf<UInt>()
+            protocolScope.launch {
+                withContext(Dispatchers.IO) {
+                    contacts.addAll(contactDatabase!!.getAllContactIds().map { id -> id.toUInt() })
+                }
+                val format = "png"
+                val compressed = Zstd.compress(image)
+                Log.i("ApollonProtocolHandler", "Sending compressed image with size: ${compressed.size}")
+                var name = "Username"
+                if (user != null)
+                    name = user!!.username
+                val contactInfo = ContactInfo(name, contacts, image.size.toUInt(), format, compressed.toUByteArray())
+                sendAny(header, contactInfo)
+            }
+            // Do we need to insert the image somewhere to show it?
+        } catch (ex : java.lang.Exception) {
+            Log.i("ApollonProtocolHandler", "Failed to send contact info: $ex")
+        }
     }
 
     fun sendCreateAccount(newUser : User) {
@@ -455,7 +483,7 @@ object ApollonProtocolHandler {
         // Struct contains the information for resend and process data
         val store = StorageMessage(header.MessageId, Calendar.getInstance().timeInMillis, packet, payload, 0)
         unackedPackets.add(store)
-        Networking.write(packet)
+        (packet)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -478,12 +506,11 @@ object ApollonProtocolHandler {
         Log.i("ApollonProtocolHandler", "Starting protocol listening")
         withContext(Dispatchers.IO) {
             try {
-                val produce = receivePackets()
+                val produce = produceBytes()
                 val packets = convertBytesToPacket(produce)
                 runBlocking {
                     while (true) {
                         val packet = packets.receive()
-
 //                        Log.i("ApollonProtocolHandler", "Received packet!")
                         receiveAny(packet)
                     }
@@ -517,22 +544,27 @@ object ApollonProtocolHandler {
     // ---------------------------------------------------
 
     // TODO: Test, Cleanup
+    @OptIn(ExperimentalUnsignedTypes::class)
     private suspend fun receiveContactInformation(header : Header, payload : String) {
         if (contactDatabase == null || messageDatabase == null) {
             throw IllegalStateException("Protocol Handler not initialized! Wrong usage!")
         }
 
-        withContext(Dispatchers.IO) {
-            Log.i("ApollonProtocolHandler", "Expecting Contact Information")
-            val info = ignoreUnknownJson.decodeFromString<ContactInfo>(payload)
+        try {
+            withContext(Dispatchers.IO) {
+                Log.i("ApollonProtocolHandler", "Expecting Contact Information")
+                val info = ignoreUnknownJson.decodeFromString<ContactInfo>(payload)
 
-            // Include the information how much compression is in packet
-            val decomImage = ByteArray(info.ImageBytes.toInt())
-            Zstd.decompress(decomImage, info.Image)
-            // Store the image to the application specific storage under "contactID.file"
-            val storageFile = File(imageFileDir, "${header.UserId}.${UCharacter.toLowerCase(info.ImageFormat)}")
-            storageFile.writeBytes(decomImage)
-            Log.i("ApollonProtocolHandler", "Stored contact ${header.UserId} picture under ${storageFile.absolutePath}")
+                // Include the information how much compression is in packet
+                val decomImage = ByteArray(info.ImageBytes.toInt())
+                Zstd.decompress(decomImage, info.Image.toByteArray())
+                // Store the image to the application specific storage under "contactID.file"
+                val storageFile = File(imageFileDir, "${header.UserId}.${UCharacter.toLowerCase(info.ImageFormat)}")
+                storageFile.writeBytes(decomImage)
+                Log.i("ApollonProtocolHandler", "Stored contact ${header.UserId} picture under ${storageFile.absolutePath}")
+            }
+        } catch (ex : Exception) {
+            Log.i("ApollonProtocolHandler", "Invalid packet received:\n$ex")
         }
     }
 
@@ -628,7 +660,7 @@ object ApollonProtocolHandler {
 //                            SendAny(packet.third)
                             // Need to check for
                             Log.i("ApollonProtocolHandler", "Sending packet ${packet.MessageID} again...")
-                            Networking.write(packet.RawPacket)
+                            Networking.send(packet.RawPacket)
                             packet.increaseResend()
                         } else {
                             // Tried sending packet already 3 times. Remove?
@@ -664,7 +696,7 @@ object ApollonProtocolHandler {
             val mId = messageID.getAndAdd(1).toUInt()
             val login = Header(PacketCategories.CONTACT.cat.toByte(), ContactType.LOGIN.type.toByte(), userId, mId)
             val packet = login.toByteArray() + "\n".toByteArray()
-            Networking.write(packet)
+            Networking.send(packet)
             loggedIn = true
         }
     }
