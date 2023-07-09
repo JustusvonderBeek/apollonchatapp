@@ -23,7 +23,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:navigationIcon="@drawable/ic_back"
-            app:title="Add a new contact"
+            app:title="@string/add_contact_title"
             app:navigationIconTint="@color/design_default_color_on_primary"
             style="@style/Widget.MaterialComponents.Toolbar.Primary"
             />
