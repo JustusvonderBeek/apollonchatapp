@@ -1,15 +1,22 @@
 package com.cloudsheeptech.anzuchat.chatlist
 
 import android.app.Application
+import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.bumptech.glide.Glide
+import com.bumptech.glide.RequestBuilder
 import com.cloudsheeptech.anzuchat.database.ApollonDatabase
 import com.cloudsheeptech.anzuchat.database.contact.Contact
 import com.cloudsheeptech.anzuchat.database.user.User
+import com.cloudsheeptech.anzuchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
 import com.cloudsheeptech.anzuchat.networking.Networking
 import kotlinx.coroutines.*
+import java.net.URI
 
 class ChatListViewModel(val application: Application) : ViewModel() {
 
@@ -36,6 +43,10 @@ class ChatListViewModel(val application: Application) : ViewModel() {
     val user : LiveData<User>
         get() = _user
 
+    private var _pickImage = MutableLiveData<Boolean>()
+    val pickImage : LiveData<Boolean>
+        get() = _pickImage
+
     override fun onCleared() {
         super.onCleared()
         viewModelJob.cancel()
@@ -43,6 +54,7 @@ class ChatListViewModel(val application: Application) : ViewModel() {
 
     init {
         Log.i("ChatListViewModel", "ChatListViewModel created")
+        _pickImage.value = false
     }
 
 
@@ -90,6 +102,17 @@ class ChatListViewModel(val application: Application) : ViewModel() {
 
     private suspend fun restartNetwork() {
 
+    }
+
+    fun onToolbarClicked() {
+        // Selecting a new image
+        _pickImage.value = true
+    }
+
+    fun onImagePicked(image : ByteArray) {
+        _pickImage.value = false
+        // Handling the image as new profile image
+        ApollonProtocolHandler.sendContactInformation(null, image)
     }
 
     fun onContactClicked(contactID : Long) {
