@@ -20,4 +20,5 @@
     <string name="last_online_prefix">Zuletzt Online</string>
     <string name="last_online_never">Niemals</string>
     <string name="chat_list_title">Chats</string>
+    <string name="add_contact_title">Neuen Kontakt hinzufügen</string>
 </resources>
