@@ -1,18 +1,21 @@
 package com.cloudsheeptech.anzuchat.chatlist
 
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Log
 import android.view.*
-import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.Fragment
-import androidx.core.view.MenuProvider
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.databinding.DataBindingUtil
-import androidx.lifecycle.Lifecycle
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.cloudsheeptech.anzuchat.R
 import com.cloudsheeptech.anzuchat.databinding.FragmentChatListBinding
+import java.text.DateFormat
+import java.text.SimpleDateFormat
+import java.util.Calendar
 
 class ChatListFragment : Fragment() {
     private lateinit var viewModel : ChatListViewModel
@@ -73,6 +76,26 @@ class ChatListFragment : Fragment() {
                 }
             }
         })
+
+        val pickMedia = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri == null) {
+                Log.i("ChatListFragment", "No image selected")
+                return@registerForActivityResult
+            }
+            Log.i("ChatListFragment", "Selected Image: $uri")
+            val resolver = application.contentResolver
+            var fileContent : ByteArray
+            resolver.openInputStream(uri).use {
+                fileContent = it!!.readBytes()
+            }
+            viewModel.onImagePicked(fileContent)
+        }
+
+        viewModel.pickImage.observe(viewLifecycleOwner) {
+            if (it) {
+                pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            }
+        }
 
         return binding.root
     }
