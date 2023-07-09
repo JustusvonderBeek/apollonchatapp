@@ -29,7 +29,7 @@ interface MessageDao {
     fun getMessagesLive(contactId : Long) : LiveData<MutableList<DisplayMessage>>
 
     @Query("SELECT * FROM message_table WHERE contactId = :contactId ORDER BY messageId ASC")
-    fun messagesByID(contactId : Long) : PagingSource<Int, DisplayMessage>
+    fun messagesByIDPaged(contactId : Long) : PagingSource<Int, DisplayMessage>
 
     @Query("SELECT * FROM message_table WHERE contactId = :contactId ORDER BY messageId ASC")
     fun getMessages(contactId : Long) : MutableList<DisplayMessage>?
