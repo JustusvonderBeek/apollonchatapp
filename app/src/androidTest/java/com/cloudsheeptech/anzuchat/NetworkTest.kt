@@ -266,8 +266,9 @@ class NetworkTest {
                 readSema.release()
                 writeSema.release()
             }
-            Thread.sleep(500)
+            Thread.sleep(10000)
         }
+
 
     }
 
@@ -339,7 +340,7 @@ class NetworkTest {
         runBlocking {
             // Expecting an exception
             try {
-//                Networking.start(context)
+                Networking.start(context)
                 Assert.fail()
             } catch (ex : IllegalStateException) {
                 Log.i("NetworkTest", "Exception correctly thrown")
@@ -347,13 +348,13 @@ class NetworkTest {
 
             val netConfig = Networking.Configuration()
             netConfig.secure = true
-            netConfig.remote = "10.2.0.2"
+            netConfig.remote = "10.0.2.2"
             val recChannel = Channel<ByteArray>(20)
-//            Networking.initialize(netConfig, recChannel)
-//            Networking.start(context)
+            Networking.initialize(netConfig, recChannel)
+            Networking.start(context)
 
             delay(500L)
-//            Networking.start(context)
+            Networking.start(context)
             delay(500L)
 //            Networking.start(context)
             delay(500L)
