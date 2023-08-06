@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- For debug purposes only !-->
     <base-config>
         <trust-anchors>
             <certificates src="@raw/apollon"/>
             <certificates src="system"/>
         </trust-anchors>
     </base-config>
+    <!-- We only want to add this additional certificate for my domain -->
+    <!-- During debug allow for cleartext (http or TCP) connections -->
+<!--    <domain-config>-->
+<!--        <domain includeSubdomains="true" cleartextTrafficPermitted="true">cloudsheeptech.com</domain>-->
+<!--        <trust-anchors>-->
+<!--            <certificates src="@raw/apollon"/>-->
+<!--        </trust-anchors>-->
+<!--    </domain-config>-->
+    <!-- Default certificates can be added with the base-config tag -->
+    <!-- <base-config>-->
+    <!-- </base-config>-->
 </network-security-config>
