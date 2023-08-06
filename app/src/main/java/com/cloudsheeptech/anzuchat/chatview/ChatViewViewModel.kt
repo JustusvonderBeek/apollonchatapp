@@ -21,6 +21,7 @@ import com.cloudsheeptech.anzuchat.database.user.UserDatabaseDao
 import com.cloudsheeptech.anzuchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.map
 import java.io.File
 import java.io.IOException
@@ -52,10 +53,8 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
             maxSize = 300,
         )
     ) {
-        messageDatabase.messagesByID(contactID)
-    }.flow.map {
-        it
-    }.cachedIn(viewModelScope)
+        messageDatabase.messagesByIDPaged(contactID)
+    }.flow.cachedIn(viewModelScope)
 
     val lastOnline = MutableLiveData<String>(application.getString(R.string.last_online_prefix) + ": " + application.getString(R.string.last_online_never))
 
@@ -81,6 +80,7 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
         _showRejectHint.value = false
         loadUser(contactID)
         loadMessages(contactID)
+        scrollBottom()
         userImage.value = File(application.applicationContext.filesDir, "$contactID.jpeg").absolutePath
 //        userImage.value = Uri.parse("android.resource://" + R.drawable.owl).path
     }
@@ -138,7 +138,7 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
         uiScope.launch {
             val localContact = loadContactFromDatabase(contactID)
             _contact.value = localContact
-            ScrollBottom()
+            scrollBottom()
             checkNewContact()
             lastOnline.value = application.getString(R.string.last_online_prefix) + ": " + localContact.lastMessage
         }
@@ -159,8 +159,12 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
         }
     }
 
-    fun ScrollBottom() {
-//        this._scroll.value = messages.count()?.let { it.size - 1 }
+    fun scrollBottom() {
+//        var last = 0
+//        viewModelScope.launch {
+//            last = messages.count()
+//        }
+//        this._scroll.value = last - 1
     }
 
     fun ScrolledBottom() {
