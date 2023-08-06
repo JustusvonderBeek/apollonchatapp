@@ -11,7 +11,8 @@ import com.cloudsheeptech.anzuchat.database.message.MessageDao
 import com.cloudsheeptech.anzuchat.database.user.User
 import com.cloudsheeptech.anzuchat.database.user.UserDatabaseDao
 import com.cloudsheeptech.anzuchat.networking.Networking
-import com.cloudsheeptech.anzuchat.networking.Networking.produceBytes
+import com.cloudsheeptech.anzuchat.networking.Networking.receive
+import com.cloudsheeptech.anzuchat.networking.Networking.receivePacket
 import com.cloudsheeptech.anzuchat.networking.constants.ContactType
 import com.cloudsheeptech.anzuchat.networking.constants.DataType
 import com.cloudsheeptech.anzuchat.networking.constants.PacketCategories
@@ -25,7 +26,15 @@ import com.cloudsheeptech.anzuchat.networking.packets.Message
 import com.cloudsheeptech.anzuchat.networking.packets.NetworkOption
 import com.cloudsheeptech.anzuchat.networking.packets.Search
 import com.github.luben.zstd.Zstd
+import io.ktor.network.selector.SelectorManager
+import io.ktor.network.sockets.Socket
+import io.ktor.network.sockets.aSocket
+import io.ktor.network.sockets.openReadChannel
+import io.ktor.network.sockets.openWriteChannel
+import io.ktor.network.tls.tls
 import io.ktor.util.date.getTimeMillis
+import io.ktor.utils.io.jvm.javaio.toInputStream
+import io.ktor.utils.io.jvm.javaio.toOutputStream
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,12 +44,17 @@ import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.channels.produce
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.io.IOException
+import java.io.OutputStream
 import java.time.LocalDateTime
 import java.util.Calendar
 import java.util.concurrent.atomic.AtomicInteger
@@ -72,6 +86,10 @@ object ApollonProtocolHandler {
     private var contactDatabase : ContactDatabaseDao? = null
 
     private lateinit var network : Networking
+    private lateinit var socket : Socket
+    private lateinit var sendingStream : OutputStream
+    private var connectionBarrier = Semaphore(1, 1)
+    private val sendingLock = Mutex(true)
 
     private var protocolJobs = Job()
     private var protocolScope = CoroutineScope(Dispatchers.Main + protocolJobs)
@@ -99,7 +117,12 @@ object ApollonProtocolHandler {
 
         val networkConfig = Networking.Configuration()
 //        network = Networking(networkConfig, context)
-        Networking.init(networkConfig, context)
+        val channel = Channel<ByteArray>(100)
+        Networking.initialize(networkConfig, channel)
+        protocolScope.launch {
+            Networking.start(context)
+//            connect()
+        }
 
         thread {
             runBlocking {
@@ -116,9 +139,27 @@ object ApollonProtocolHandler {
             login()
         }
         protocolScope.launch {
-            HandleUnackedPackets()
+            handleUnackedPackets()
         }
         Log.i("ApollonProtocolHandler", "Initialized Protocol Handler with ID $userId")
+    }
+
+    private suspend fun connect() {
+        // Check reliability
+        Log.d("ApollonProtocolHandler", "Connecting...")
+        withContext(Dispatchers.IO) {
+            // Works only in case the security config is adapted
+            // For domain specifc certificates, a custom callback must be implemented
+            try {
+                val localSocket = aSocket(SelectorManager(Dispatchers.IO)).tcp().connect("10.0.2.2", 50001).tls(protocolJobs)
+                socket = localSocket
+                sendingStream = localSocket.openWriteChannel(autoFlush = true).toOutputStream()
+                connectionBarrier.release()
+                sendingLock.unlock()
+            } catch (ex : Exception) {
+                Log.i("ApollonProtocolHandler", "Could not connect to the remote server")
+            }
+        }
     }
 
     fun close() {
@@ -369,10 +410,10 @@ object ApollonProtocolHandler {
             val mID = messageID.getAndAdd(1).toUInt()
             val header = Header(PacketCategories.DATA.cat.toByte(), DataType.TEXT.type.toByte(), userId, mID)
             val message = Message(to, getTimeMillis().toString(), text)
-            sendAny(header, message)
 
             // Adding the text into the message database
             protocolScope.launch {
+                sendAny(header, message)
                 insertMessageIntoDatabase(header, message)
             }
         } catch (ex : NullPointerException) {
@@ -422,7 +463,9 @@ object ApollonProtocolHandler {
             val create = Create(newUser.username)
             val mID = messageID.getAndAdd(1).toUInt()
             val header = Header(PacketCategories.CONTACT.cat.toByte(), ContactType.CREATE.type.toByte(), 0u, mID)
-            sendAny(header, create)
+            protocolScope.launch {
+                sendAny(header, create)
+            }
         } catch (ex : Exception) {
             Log.i("ApollonProtocolHandler", "Failed to send create account to server!\n$ex")
         }
@@ -433,7 +476,9 @@ object ApollonProtocolHandler {
             val search = Search(searchString)
             val mID = messageID.getAndAdd(1).toUInt()
             val header = Header(PacketCategories.CONTACT.cat.toByte(), ContactType.SEARCH.type.toByte(), userId, mID)
-            sendAny(header, search)
+            protocolScope.launch {
+                sendAny(header, search)
+            }
         } catch (ex : Exception) {
             Log.i("ApollonProtocolHandler", "Failed to send search to server!\n$ex")
         }
@@ -445,7 +490,9 @@ object ApollonProtocolHandler {
             val option = ContactOption(contactId, addOption)
             val mID = messageID.getAndAdd(1).toUInt()
             val header = Header(PacketCategories.CONTACT.cat.toByte(), ContactType.OPTION.type.toByte(), userId, mID)
-            sendAny(header, option)
+            protocolScope.launch {
+                sendAny(header, option)
+            }
         } catch (ex : Exception) {
             Log.i("ApollonProtocolHandler", "Failed to send search to server!\n$ex")
         }
@@ -474,7 +521,7 @@ object ApollonProtocolHandler {
         }
     }
 
-    private inline fun <reified T> sendAny(header : Header, content : T) {
+    private suspend inline fun <reified T> sendAny(header : Header, content : T) {
         // Get the message ID of the packet to ack later
         val payload = Json.encodeToString(content)
         val rawPayload = payload + "\n"
@@ -483,13 +530,26 @@ object ApollonProtocolHandler {
         // Struct contains the information for resend and process data
         val store = StorageMessage(header.MessageId, Calendar.getInstance().timeInMillis, packet, payload, 0)
         unackedPackets.add(store)
-        (packet)
+        Log.d("ApollonProtocolHandler", "Packet: ${packet.toHexString()}")
+        Networking.send(packet)
+//        withContext(Dispatchers.IO) {
+//            try {
+//                sendingLock.withLock {
+//                    sendingStream.write(packet)
+//                }
+//            } catch (ex : Exception) {
+//                Log.d("ApollonProtocolHandler", "Sending failed")
+//                connect()
+//            }
+//        }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun CoroutineScope.convertBytesToPacket(source : ReceiveChannel<ByteArray>) : ReceiveChannel<ByteArray> = produce {
         val nextPacket = mutableListOf<Byte>()
         while (true) {
+            if (source.isClosedForReceive)
+                return@produce
             for (byte in source.receive()) {
                 if (byte != 0x0a.toByte())
                     nextPacket.add(byte)
@@ -503,18 +563,39 @@ object ApollonProtocolHandler {
     }
 
     private suspend fun listenReceiveChannel() {
+//        connectionBarrier.acquire()
         Log.i("ApollonProtocolHandler", "Starting protocol listening")
         withContext(Dispatchers.IO) {
             try {
-                val produce = produceBytes()
-                val packets = convertBytesToPacket(produce)
+                val produce = receive()
+                val packets = receivePacket(produce)
                 runBlocking {
                     while (true) {
                         val packet = packets.receive()
-//                        Log.i("ApollonProtocolHandler", "Received packet!")
+                        Log.i("ApollonProtocolHandler", "Received packet!")
                         receiveAny(packet)
                     }
                 }
+//                val readBuffer = ByteArray(100)
+//                val nextPacket = mutableListOf<Byte>()
+//                var recStream = socket.openReadChannel().toInputStream()
+//                while(true) {
+//                    val read = recStream.read(readBuffer, 0, readBuffer.size - 1)
+//                    if (read == 0) {
+//                        Log.i("Networking", "Remote endpoint closed connection")
+//                        connect()
+//                        recStream = socket.openReadChannel().toInputStream()
+//                    }
+//                    for (byte in readBuffer.sliceArray(0 until read)) {
+//                        if (byte != 0x0a.toByte())
+//                            nextPacket.add(byte)
+//                        else {
+//                            val packet = nextPacket.toByteArray()
+//                            receiveAny(packet)
+//                            nextPacket.clear()
+//                        }
+//                    }
+//                }
             } catch (ex : Exception) {
                 Log.i("ApollonProtocolHandler", "Failed to receive packets! $ex")
             }
@@ -648,7 +729,7 @@ object ApollonProtocolHandler {
         }
     }
 
-    private suspend fun HandleUnackedPackets() {
+    private suspend fun handleUnackedPackets() {
         withContext(Dispatchers.IO) {
             while (true) {
                 if (unackedPackets.size > 0) {
@@ -660,7 +741,15 @@ object ApollonProtocolHandler {
 //                            SendAny(packet.third)
                             // Need to check for
                             Log.i("ApollonProtocolHandler", "Sending packet ${packet.MessageID} again...")
-                            Networking.send(packet.RawPacket)
+//                            Networking.send(packet.RawPacket)
+                            try {
+                                sendingLock.withLock {
+                                    sendingStream.write(packet.RawPacket)
+                                }
+                            } catch (ex : Exception) {
+                                Log.d("ApollonProtocolHandler", "Reconnecting?")
+                                connect()
+                            }
                             packet.increaseResend()
                         } else {
                             // Tried sending packet already 3 times. Remove?
@@ -697,6 +786,9 @@ object ApollonProtocolHandler {
             val login = Header(PacketCategories.CONTACT.cat.toByte(), ContactType.LOGIN.type.toByte(), userId, mId)
             val packet = login.toByteArray() + "\n".toByteArray()
             Networking.send(packet)
+//            sendingLock.withLock {
+//                sendingStream.write(packet)
+//            }
             loggedIn = true
         }
     }
