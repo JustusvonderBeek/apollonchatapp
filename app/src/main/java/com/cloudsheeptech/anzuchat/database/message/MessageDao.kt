@@ -6,6 +6,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
+import java.util.Date
 
 @Dao
 interface MessageDao {
@@ -28,10 +29,13 @@ interface MessageDao {
     @Query("SELECT * FROM message_table WHERE contactId = :contactId ORDER BY messageId ASC")
     fun getMessagesLive(contactId : Long) : LiveData<MutableList<DisplayMessage>>
 
-    @Query("SELECT * FROM message_table WHERE contactId = :contactId ORDER BY messageId ASC")
+    @Query("SELECT * FROM message_table WHERE contactId = :contactId ORDER BY messageId DESC")
     fun messagesByIDPaged(contactId : Long) : PagingSource<Int, DisplayMessage>
 
     @Query("SELECT * FROM message_table WHERE contactId = :contactId ORDER BY messageId ASC")
     fun getMessages(contactId : Long) : MutableList<DisplayMessage>?
+
+    @Query("SELECT timestamp FROM message_table WHERE contactId = :contactId ORDER BY messageId DESC LIMIT 1")
+    fun getLastOnline(contactId: Long) : LiveData<Date>?
 
 }
