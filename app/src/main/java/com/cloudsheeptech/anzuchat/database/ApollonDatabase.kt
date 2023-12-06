@@ -15,7 +15,7 @@ import com.cloudsheeptech.anzuchat.database.message.MessageDao
 import com.cloudsheeptech.anzuchat.database.user.User
 import com.cloudsheeptech.anzuchat.database.user.UserDatabaseDao
 
-@Database(entities = [Contact::class, User::class, DisplayMessage::class], version = 1, exportSchema = false)
+@Database(entities = [Contact::class, User::class, DisplayMessage::class], version = 2, exportSchema = false)
 @TypeConverters(value = [DatabaseTypeConverter::class])
 abstract class ApollonDatabase : RoomDatabase() {
 
