@@ -409,7 +409,7 @@ object ApollonProtocolHandler {
             // Get current MessageID
             val mID = messageID.getAndAdd(1).toUInt()
             val header = Header(PacketCategories.DATA.cat.toByte(), DataType.TEXT.type.toByte(), userId, mID)
-            val message = Message(to, getTimeMillis().toString(), text)
+            val message = Message(to, getTimeMillis(), text)
 
             // Adding the text into the message database
             protocolScope.launch {

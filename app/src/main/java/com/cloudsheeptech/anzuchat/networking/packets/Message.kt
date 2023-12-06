@@ -6,7 +6,7 @@ import kotlin.random.Random
 @kotlinx.serialization.Serializable
 data class Message(
     var ContactUserId : UInt,
-    var Timestamp : String,
+    var Timestamp : Long,
     var Message : String,
 ) {
     // TODO: Fix time timestamp to be generated internally and have the correct format
