@@ -53,7 +53,7 @@
                     android:id="@+id/chatviewToolbarSubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@{chatViewViewModel.lastOnline}"
+                    android:text='@{String.format("Last online: %s", chatViewViewModel.testLastOnline.toLocaleString())}'
                     style="@style/Toolbar.Subtitle"
                     />
 
@@ -112,6 +112,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/rejectHintStack"
+            app:reverseLayout="true"
             tools:listitem="@layout/chat_message_item">
 
         </androidx.recyclerview.widget.RecyclerView>

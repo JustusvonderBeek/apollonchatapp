@@ -56,7 +56,9 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
         messageDatabase.messagesByIDPaged(contactID)
     }.flow.cachedIn(viewModelScope)
 
-    val lastOnline = MutableLiveData<String>(application.getString(R.string.last_online_prefix) + ": " + application.getString(R.string.last_online_never))
+    val lastOnline = MutableLiveData<String>(application.getString(R.string.last_online_never))
+
+    val testLastOnline = messageDatabase.getLastOnline(contactID)
 
     private val _scroll = MutableLiveData(-1)
     val scrollToBottom : LiveData<Int>
@@ -140,7 +142,6 @@ class ChatViewViewModel(val contactID: Long = -1L, val contactDatabase: ContactD
             _contact.value = localContact
             scrollBottom()
             checkNewContact()
-            lastOnline.value = application.getString(R.string.last_online_prefix) + ": " + localContact.lastMessage
         }
     }
 
