@@ -11,14 +11,13 @@ import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.databinding.DataBindingUtil
 import androidx.navigation.findNavController
-import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.NavigationUI
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -28,6 +27,8 @@ import com.cloudsheeptech.anzuchat.database.message.DisplayMessage
 import com.cloudsheeptech.anzuchat.networking.ApollonProtocolHandler.ApollonProtocolHandler
 import com.cloudsheeptech.anzuchat.databinding.ActivityMainBinding
 import com.cloudsheeptech.anzuchat.work.FetchNetworkWorker
+import com.google.android.gms.tasks.OnCompleteListener
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -70,6 +71,10 @@ class MainActivity : AppCompatActivity() {
         ApollonProtocolHandler.initialize(userId, application) { m, c ->
             messageNotification(m, c)
         }
+
+        // Get the firebase message id token
+        getFirebaseToken()
+
     }
 
     override fun onResume() {
@@ -160,6 +165,20 @@ class MainActivity : AppCompatActivity() {
             // Because we include the whole message history update the old one (bind to contact ID)
             notify(contact.contactId.toInt(), notification)
         }
+    }
+
+    private fun getFirebaseToken() {
+        FirebaseMessaging.getInstance().token.addOnCompleteListener(OnCompleteListener { task ->
+            if (!task.isSuccessful) {
+                Log.w("MainActivity", "Fetching FCM registration token failed", task.exception)
+                return@OnCompleteListener
+            }
+            val token = task.result
+
+            val msg = token
+            Log.d("MainActivity", "Token: $msg")
+            Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
+        })
     }
 
     override fun onDestroy() {
