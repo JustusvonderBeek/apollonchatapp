@@ -5,6 +5,7 @@ plugins {
     id 'kotlin-kapt'
     id 'androidx.navigation.safeargs.kotlin'
     id 'kotlinx-serialization'
+    id 'com.google.gms.google-services'
 }
 
 android {
@@ -77,6 +78,8 @@ dependencies {
 
     // Background work
     implementation "androidx.work:work-runtime-ktx:2.8.1"
+    implementation 'com.google.firebase:firebase-messaging:23.3.1'
+    implementation 'com.google.firebase:firebase-analytics-ktx:21.5.0'
 
     // Data compression
     implementation "com.github.luben:zstd-jni:1.5.5-1@aar"
@@ -86,6 +89,9 @@ dependencies {
     implementation 'com.github.bumptech.glide:glide:4.12.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.12.0'
     implementation 'androidx.activity:activity-ktx:1.7.2'
+
+    // Real-time video calls (change this to local webrtc library when done)
+    implementation 'io.getstream:stream-webrtc-android:1.0.0'
 
     // Testing
     testImplementation 'junit:junit:4.13.2'

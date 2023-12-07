@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:504553067467:android:3cd93c7dfaf5da7d531c4e",
+        "mobilesdk_app_id": "1:504553067467:android:ebfb8fc2b34fb69c531c4e",
         "android_client_info": {
-          "package_name": "com.cloudsheeptechnologies.apollonchat"
+          "package_name": "com.cloudsheeptech.anzuchat"
         }
       },
       "oauth_client": [
